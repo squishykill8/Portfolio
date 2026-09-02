@@ -93,15 +93,22 @@
 
   .cta-row{ display:flex; gap:14px; flex-wrap:wrap; }
   .btn{
-    font-family:'Nunito', sans-serif; font-weight:600; font-size:0.95rem;
-    padding:12px 22px; border-radius:var(--radius); text-decoration:none;
+    font-family:'Nunito', sans-serif; font-weight:700; font-size:0.95rem;
+    padding:13px 26px; border-radius:999px; text-decoration:none;
     border:1px solid transparent; display:inline-block; cursor:pointer;
-    transition:transform 0.15s ease, background 0.15s ease;
+    transition:transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
   }
-  .btn-primary{ background:var(--amber); color:var(--blueprint-deep); }
-  .btn-primary:hover{ transform:translateY(-2px); background:#f5ba5c; }
+  .btn-primary{
+    background:var(--amber); color:var(--blueprint-deep);
+    box-shadow:0 4px 16px rgba(242,169,59,0.4);
+  }
+  .btn-primary:hover{
+    transform:translateY(-2px) scale(1.03);
+    background:#f5ba5c;
+    box-shadow:0 8px 22px rgba(242,169,59,0.55);
+  }
   .btn-ghost{ border-color:var(--paper-dim); color:var(--paper); background:none; }
-  .btn-ghost:hover{ border-color:var(--amber); color:var(--amber); }
+  .btn-ghost:hover{ border-color:var(--amber); color:var(--amber); transform:translateY(-2px); }
 
   /* ---- Stat strip ---- */
   .stats{
@@ -125,8 +132,9 @@
   .section-head p{ color:var(--paper-dim); margin:0; }
 
   /* ---- Project grid (rendered by JS) ---- */
-  .project-grid{ display:grid; grid-template-columns:repeat(2, 1fr); gap:24px; }
-  @media (max-width:800px){ .project-grid{ grid-template-columns:1fr; } }
+  .project-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:24px; }
+  @media (max-width:900px){ .project-grid{ grid-template-columns:repeat(2, 1fr); } }
+  @media (max-width:560px){ .project-grid{ grid-template-columns:1fr; } }
 
   .card{
     position:relative;
@@ -146,7 +154,7 @@
   .card::after{ bottom:8px; right:8px; border-bottom:2px solid; border-right:2px solid; }
 
   .card-image{
-    width:100%; aspect-ratio:16/9; object-fit:cover;
+    width:100%; aspect-ratio:1/1; object-fit:cover;
     border:1px solid var(--grid-line-strong); border-radius:var(--radius);
     margin-bottom:18px; background:var(--blueprint-deep);
   }
@@ -220,9 +228,10 @@
   <section class="hero">
     <div class="wrap hero-inner">
       <h1>Playable ideas</h1>
-      <p class="lede">Below is a collection of game prototypes and interactive experiments designed and developed through iteration. The designs are by me and the game is build via Claude</p>
+      <p class="lede">A collection of game prototypes and interactive experiments designed by me and prototyped with Claude Ai.</p>
       <div class="cta-row">
-        <a href="#work" class="btn btn-primary">Browse projects</a>
+        <a href="#work" class="btn btn-primary">Personal projects</a>
+        <a href="#studio-work" class="btn btn-primary">Professional projects</a>
         <a href="#contact" class="btn btn-ghost">Get in touch</a>
       </div>
     </div>
@@ -235,8 +244,7 @@
   <section id="work">
     <div class="wrap">
       <div class="section-head">
-        <span class="section-tag">PROJECTS</span>
-        <h2>The gallery</h2>
+        <span class="section-tag"><h2>Personal Projects</h2></span>
         <p>Click "Play" on any project to try it right here. Everything below is generated from the list at the bottom of this file — add an entry there and it shows up here automatically.</p>
       </div>
 
@@ -249,14 +257,13 @@
   <section id="studio-work">
     <div class="wrap">
       <div class="section-head">
-        <span class="section-tag">STUDIO WORK</span>
-        <h2>Professional projects</h2>
+        <span class="section-tag"><h2>Studio Projects</h2></span>
         <p>Live, published titles I've worked on as part of my career in the game industry.</p>
       </div>
 
       <div class="project-grid" style="grid-template-columns:repeat(2, 1fr);">
         <div class="card">
-          <img class="card-image" src="images/project-makeover-cover.png" alt="Project Makeover cover" onerror="this.remove();">
+          <img class="card-image" src="images/project-makeover.png" alt="Project Makeover cover" onerror="this.remove();">
           <h3>Project Makeover</h3>
           <p>A home-renovation match-3 game blending interior design with puzzle gameplay.</p>
           <div class="tag-row">
@@ -269,7 +276,7 @@
         </div>
 
         <div class="card">
-          <img class="card-image" src="images/realm-defense-cover.png" alt="Realm Defense cover" onerror="this.remove();">
+          <img class="card-image" src="images/realm-defense.png" alt="Realm Defense cover" onerror="this.remove();">
           <h3>Realm Defense</h3>
           <p>A fantasy tower-defense strategy game with heroes, spells, and evolving maps.</p>
           <div class="tag-row">
@@ -286,9 +293,9 @@
 
   <section id="about">
     <div class="wrap about-body">
-      <span class="section-tag">ABOUT</span>
-      <h2>About</h2>
-      <p><em>Hi, my name is Dzung. I'm a game designer and developer. This website includes a collection of prototypes I've designed, then developed via Claude. I've worked in the game industry for 15 years in various areas including but not limited to: Game Design, Publishing Support, Game Programming, and Management.</em></p>
+      <span class="section-tag"><h2>About</h2></span>
+      <img class="card-image" src="images/me.png" alt="Me" onerror="this.remove();">
+      <p><em>Hi, my name is Dzung. I'm a game designer and developer. This website includes a collection of prototypes I've designed, then developed via Claude Ai. I've worked in the game industry for 15 years in various areas including but not limited to: Game Design, Publishing Support, Game Programming, and Management.</em></p>
       <p><a href="files/resume.pdf" target="_blank" rel="noopener" class="btn btn-ghost">View my resume</a></p>
     </div>
   </section>
@@ -376,14 +383,14 @@
       file: "projects/tilt-dungeon.html"
     },
     {
-      title: "Planetary Alignment",
+      title: "Syzygy",
       description: "Align planets by stopping their rotation.",
       tags: ["Browser", "Puzzle"],
       image: "images/syzygy.png",
       file: "projects/syzygy.html"
     },
     {
-      title: "Bubble Pop",
+      title: "Pop Bubbles",
       description: "A simple bubble popping game to entertain my son",
       tags: ["Browser", "Arcade"],
       image: "images/bubble-pop.png",
