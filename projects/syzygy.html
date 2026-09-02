@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Syzygy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep: #0a0d18;
+    --bg-vignette: #131a2e;
+    --ring-line: #333f66;
+    --ring-line-dim: #232c48;
+    --starlight: #f2ecd9;
+    --text-primary: #ece9e0;
+    --text-secondary: #8891ac;
+    --c1: #e8b86d;
+    --c2: #6fb8b0;
+    --c3: #a08bd1;
+    --c4: #d98a8a;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%; overflow: hidden;
+    background: radial-gradient(ellipse at 50% 35%, var(--bg-vignette) 0%, var(--bg-deep) 70%);
+    font-family: 'Inter', sans-serif;
+    color: var(--text-primary);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  #wrap { position: relative; width: 100vw; height: 100vh; display: flex; flex-direction: column; align-items: center; }
+
+  header { text-align: center; padding: clamp(14px, 3vh, 28px) 16px 4px; z-index: 2; }
+  h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 600; font-style: italic;
+    font-size: clamp(28px, 6vw, 40px);
+    letter-spacing: 0.12em;
+    margin: 0;
+    color: var(--starlight);
+    text-shadow: 0 0 24px rgba(242,236,217,0.25);
+  }
+  .sub {
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--text-secondary); margin-top: 6px;
+  }
+
+  #hud {
+    display: flex; align-items: center; gap: 18px;
+    margin-top: 10px; font-size: 13px; color: var(--text-secondary);
+    letter-spacing: 0.04em; z-index: 2;
+  }
+  #hud .level { color: var(--text-primary); font-weight: 500; }
+
+  #stage { position: relative; flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; min-height: 0; }
+  canvas { display: block; touch-action: none; }
+
+  #message {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    text-align: center; pointer-events: none; opacity: 0; transition: opacity 0.4s ease;
+    z-index: 3;
+  }
+  #message.show { opacity: 1; }
+  #message .headline {
+    font-family: 'Cormorant Garamond', serif; font-style: italic; font-weight: 600;
+    font-size: clamp(26px, 5vw, 36px); color: var(--starlight);
+    text-shadow: 0 0 30px rgba(242,236,217,0.5);
+  }
+  #message .detail { font-size: 12px; color: var(--text-secondary); margin-top: 6px; letter-spacing: 0.05em; }
+
+  #primaryAction {
+    display: flex; justify-content: center; padding: 14px 16px 4px; z-index: 2;
+  }
+  #primaryAction button {
+    padding: 13px 40px; font-size: 14px;
+  }
+
+  footer {
+    padding: 10px 16px calc(18px + env(safe-area-inset-bottom));
+    display: flex; gap: 10px; align-items: center; justify-content: center;
+    z-index: 2; flex-wrap: wrap;
+  }
+  button {
+    font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500;
+    letter-spacing: 0.03em;
+    background: transparent; color: var(--text-primary);
+    border: 1px solid var(--ring-line); border-radius: 999px;
+    padding: 10px 20px; cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease, opacity 0.2s ease;
+  }
+  button:hover { border-color: var(--starlight); background: rgba(242,236,217,0.06); }
+  button:active { transform: scale(0.97); }
+  button.primary { border-color: var(--starlight); color: var(--bg-deep); background: var(--starlight); }
+  button.primary:hover { opacity: 0.9; background: var(--starlight); }
+  button:disabled { opacity: 0.35; cursor: default; }
+  button:disabled:hover { border-color: var(--ring-line); background: transparent; }
+
+  #toast {
+    position: absolute; top: 8%; left: 50%; transform: translate(-50%, -8px);
+    font-size: 12px; letter-spacing: 0.05em; color: var(--starlight);
+    background: rgba(19,26,46,0.85); border: 1px solid rgba(242,236,217,0.25);
+    padding: 8px 16px; border-radius: 999px; white-space: nowrap;
+    opacity: 0; transition: opacity 0.35s ease, transform 0.35s ease; pointer-events: none; z-index: 4;
+  }
+  #toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  .hint {
+    position: absolute; bottom: calc(14px + env(safe-area-inset-bottom)); left: 0; right: 0;
+    text-align: center; font-size: 11px; color: var(--text-secondary);
+    letter-spacing: 0.05em; pointer-events: none; z-index: 2;
+  }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <header>
+    <h1>Syzygy</h1>
+    <div class="sub">still the inner ring first, then the next</div>
+  </header>
+  <div id="hud">
+    <span>Level <span class="level" id="levelNum">1</span></span>
+    <span id="ringStatus"></span>
+  </div>
+  <div id="stage">
+    <canvas id="game"></canvas>
+    <div id="toast"></div>
+    <div id="message">
+      <div class="headline" id="msgHeadline"></div>
+      <div class="detail" id="msgDetail"></div>
+    </div>
+  </div>
+  <div id="primaryAction">
+    <button id="stillBtn" class="primary">Still Ring</button>
+  </div>
+  <footer>
+    <button id="retryBtn">Retry</button>
+    <button id="nextBtn" disabled>Next Level</button>
+  </footer>
+</div>
+
+<script>
+(function() {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const levelNumEl = document.getElementById('levelNum');
+  const ringStatusEl = document.getElementById('ringStatus');
+  const messageEl = document.getElementById('message');
+  const msgHeadline = document.getElementById('msgHeadline');
+  const msgDetail = document.getElementById('msgDetail');
+  const retryBtn = document.getElementById('retryBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const stillBtn = document.getElementById('stillBtn');
+  const toastEl = document.getElementById('toast');
+  const subEl = document.querySelector('.sub');
+  let toastTimer = null;
+
+  function showToast(text) {
+    toastEl.textContent = text;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1400);
+  }
+
+  const TARGET_ANGLE = -Math.PI / 2; // straight up
+  const RING_COLORS = ['#e8b86d', '#6fb8b0', '#a08bd1', '#d98a8a'];
+
+  // Level definitions: k = signed integer speed multiplier (direction+relative speed),
+  // planets = planet count on that ring (evenly spaced), toleranceDeg = win window.
+  const LEVELS = [
+    { omega: 0.38, toleranceDeg: 11, coupled: false, rings: [ {k:1.7, planets:1}, {k:-1, planets:1} ] },
+    { omega: 0.36, toleranceDeg: 10, coupled: true,  rings: [ {k:1.7, planets:1}, {k:-2, planets:1} ] },
+    { omega: 0.32, toleranceDeg: 9,  coupled: true,  rings: [ {k:1.7, planets:1}, {k:-2, planets:1}, {k:3, planets:1} ] },
+    { omega: 0.30, toleranceDeg: 8,  coupled: true,  rings: [ {k:1.7, planets:1}, {k:-2, planets:2}, {k:3, planets:1} ] },
+    { omega: 0.27, toleranceDeg: 7,  coupled: true,  rings: [ {k:1.7, planets:1}, {k:-2, planets:1}, {k:3, planets:2}, {k:-4, planets:1} ] },
+  ];
+
+  let levelIndex = 0;
+  let ringStates = [];   // {k, radius, planets:[offsets], color, stopped, stopAngle}
+  let startTime = null;
+  let paused = false; // unused, kept out of the way
+  let stars = [];
+  let cx = 0, cy = 0, scale = 1;
+  let resultShown = false;
+  let currentT = 0; // seconds elapsed, as of the most recently rendered frame
+  let activeRingIndex = 0;
+
+  function normAngle(a) {
+    a = a % (Math.PI * 2);
+    if (a > Math.PI) a -= Math.PI * 2;
+    if (a < -Math.PI) a += Math.PI * 2;
+    return a;
+  }
+  function angDist(a, b) { return Math.abs(normAngle(a - b)); }
+
+  function resizeCanvas() {
+    const stage = document.getElementById('stage');
+    const dpr = window.devicePixelRatio || 1;
+    const size = Math.min(stage.clientWidth, stage.clientHeight) * 0.94;
+    canvas.style.width = size + 'px';
+    canvas.style.height = size + 'px';
+    canvas.width = size * dpr;
+    canvas.height = size * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    cx = size / 2; cy = size / 2;
+    scale = size / 480; // design at 480 baseline
+  }
+
+  function makeStars() {
+    stars = [];
+    for (let i = 0; i < 90; i++) {
+      stars.push({
+        x: Math.random(), y: Math.random(),
+        r: Math.random() * 1.2 + 0.3,
+        phase: Math.random() * Math.PI * 2,
+        speed: 0.5 + Math.random() * 1.0
+      });
+    }
+  }
+
+  function loadLevel(idx) {
+    levelIndex = idx;
+    const level = LEVELS[Math.min(idx, LEVELS.length - 1)];
+    const n = level.rings.length;
+    const baseR = 60, step = (200 - baseR) / Math.max(1, n - 1 || 1);
+
+    const omega = level.omega;
+    const period = (2 * Math.PI) / omega;
+    // Pick an alignment time T, derive phase offsets so rings truly co-align at T.
+    const T = period * (0.35 + Math.random() * 0.4);
+
+    ringStates = level.rings.map((r, i) => {
+      const radius = n === 1 ? baseR : baseR + step * i;
+      const delta = normAngle(TARGET_ANGLE - r.k * omega * T);
+      const offsets = [];
+      for (let j = 0; j < r.planets; j++) offsets.push((2 * Math.PI * j) / r.planets);
+      return {
+        k: r.k, radius, delta, offsets,
+        color: RING_COLORS[i % RING_COLORS.length],
+        stopped: false, stopAngle: 0, pulseStart: null
+      };
+    });
+
+    startTime = null;
+    resultShown = false;
+    activeRingIndex = 0;
+    messageEl.classList.remove('show');
+    nextBtn.disabled = true;
+    nextBtn.classList.remove('primary');
+    stillBtn.disabled = false;
+    levelNumEl.textContent = (idx + 1);
+    subEl.textContent = level.coupled
+      ? 'still the inner ring first \u2014 it may flip the next one\u2019s spin'
+      : 'still the inner ring first, then the next';
+    updateRingStatus();
+  }
+
+  function updateRingStatus() {
+    if (activeRingIndex >= ringStates.length) {
+      ringStatusEl.textContent = 'all rings stilled';
+    } else {
+      ringStatusEl.textContent = 'ring ' + (activeRingIndex + 1) + ' of ' + ringStates.length;
+    }
+  }
+
+  function ringPhase(ring, t) {
+    if (ring.stopped) return ring.stopAngle;
+    return ring.delta + ring.k * (LEVELS[Math.min(levelIndex, LEVELS.length-1)].omega) * t;
+  }
+
+  function checkAlignment() {
+    const level = LEVELS[Math.min(levelIndex, LEVELS.length - 1)];
+    const tolRad = (level.toleranceDeg * Math.PI) / 180;
+    let maxErr = 0;
+    let allAligned = true;
+    ringStates.forEach(ring => {
+      let best = Infinity;
+      ring.offsets.forEach(off => {
+        const a = ring.stopAngle + off;
+        const d = angDist(a, TARGET_ANGLE);
+        if (d < best) best = d;
+      });
+      if (best > maxErr) maxErr = best;
+      if (best > tolRad) allAligned = false;
+    });
+    return { allAligned, maxErr };
+  }
+
+  function showResult() {
+    resultShown = true;
+    const { allAligned, maxErr } = checkAlignment();
+    const deg = (maxErr * 180 / Math.PI).toFixed(1);
+    messageEl.classList.add('show');
+    if (allAligned) {
+      msgHeadline.textContent = 'Aligned';
+      msgDetail.textContent = 'off by ' + deg + '°';
+      const isLast = levelIndex >= LEVELS.length - 1;
+      nextBtn.disabled = isLast;
+      nextBtn.classList.toggle('primary', !isLast);
+      if (isLast) {
+        msgDetail.textContent += ' — final level cleared';
+      }
+    } else {
+      msgHeadline.textContent = 'Not quite';
+      msgDetail.textContent = 'off by ' + deg + '°';
+      nextBtn.disabled = true;
+      nextBtn.classList.remove('primary');
+    }
+  }
+
+  function stillActiveRing() {
+    if (resultShown || activeRingIndex >= ringStates.length) return;
+    const ring = ringStates[activeRingIndex];
+    const level = LEVELS[Math.min(levelIndex, LEVELS.length - 1)];
+    const omega = level.omega;
+
+    const angleAtClick = normAngle(ringPhase(ring, currentT));
+    ring.stopAngle = angleAtClick;
+    ring.stopped = true;
+
+    const nextIndex = activeRingIndex + 1;
+    if (level.coupled && nextIndex < ringStates.length) {
+      const next = ringStates[nextIndex];
+      const liveAngle = ringPhase(next, currentT);
+      next.k = -next.k;
+      next.delta = normAngle(liveAngle - next.k * omega * currentT);
+      next.pulseStart = currentT;
+      showToast('ring ' + (nextIndex + 1) + ' reversed');
+    }
+
+    activeRingIndex = nextIndex;
+    updateRingStatus();
+
+    if (activeRingIndex >= ringStates.length) {
+      stillBtn.disabled = true;
+      setTimeout(showResult, 250);
+    }
+  }
+
+  stillBtn.addEventListener('click', stillActiveRing);
+  canvas.addEventListener('pointerdown', stillActiveRing);
+
+  retryBtn.addEventListener('click', () => loadLevel(levelIndex));
+  nextBtn.addEventListener('click', () => {
+    if (levelIndex < LEVELS.length - 1) loadLevel(levelIndex + 1);
+  });
+
+  function draw(now) {
+    if (startTime === null) startTime = now;
+    const t = (now - startTime) / 1000;
+    currentT = t;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // stars
+    stars.forEach(s => {
+      const tw = 0.5 + 0.5 * Math.sin(t * s.speed + s.phase);
+      ctx.beginPath();
+      ctx.fillStyle = 'rgba(237,233,224,' + (0.15 + tw * 0.35).toFixed(3) + ')';
+      ctx.arc(s.x * cx * 2, s.y * cy * 2, s.r, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // target wedge (12 o'clock marker)
+    const level = LEVELS[Math.min(levelIndex, LEVELS.length - 1)];
+    const tolRad = (level.toleranceDeg * Math.PI) / 180;
+    const outerR = (60 + (ringStates.length - 1) * ((200-60)/Math.max(1,ringStates.length-1||1)) + 26) * scale;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.arc(0, 0, outerR, TARGET_ANGLE - tolRad, TARGET_ANGLE + tolRad);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(242,236,217,0.05)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(242,236,217,0.18)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0,0);
+    ctx.lineTo(outerR * Math.cos(TARGET_ANGLE), outerR * Math.sin(TARGET_ANGLE));
+    ctx.stroke();
+    ctx.restore();
+
+    // center star
+    ctx.beginPath();
+    ctx.arc(cx, cy, 5 * scale, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(242,236,217,0.9)';
+    ctx.shadowColor = 'rgba(242,236,217,0.8)';
+    ctx.shadowBlur = 16 * scale;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // coupling spokes (drawn under the rings)
+    if (level.coupled) {
+      ctx.save();
+      ctx.translate(cx, cy);
+      const spokeAngle = Math.PI * 0.78;
+      for (let i = 0; i < ringStates.length - 1; i++) {
+        const a = ringStates[i], b = ringStates[i + 1];
+        if (b.stopped) continue;
+        const r1 = a.radius * scale, r2 = b.radius * scale;
+        const x1 = r1 * Math.cos(spokeAngle), y1 = r1 * Math.sin(spokeAngle);
+        const x2 = r2 * Math.cos(spokeAngle), y2 = r2 * Math.sin(spokeAngle);
+        let alpha = 0.16;
+        if (b.pulseStart !== null) {
+          const elapsed = t - b.pulseStart;
+          if (elapsed < 0.6) alpha = 0.16 + (1 - elapsed / 0.6) * 0.7;
+        }
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = 'rgba(242,236,217,' + alpha.toFixed(3) + ')';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // rings + planets
+    ringStates.forEach((ring, i) => {
+      const r = ring.radius * scale;
+      const isActive = i === activeRingIndex && !ring.stopped;
+      const isLocked = i > activeRingIndex && !ring.stopped;
+
+      let ringAlpha = ring.stopped ? 0.28 : (isActive ? 0.9 : 0.18);
+      let planetAlpha = ring.stopped ? 1 : (isActive ? 1 : 0.35);
+      let glow = ring.stopped ? 20 : (isActive ? 14 : 0);
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.strokeStyle = ring.stopped
+        ? 'rgba(242,236,217,' + ringAlpha + ')'
+        : (isActive ? 'rgba(242,236,217,' + ringAlpha + ')' : 'rgba(51,63,102,' + ringAlpha + ')');
+      ctx.lineWidth = isActive ? 1.8 : 1.4;
+      if (isActive) {
+        ctx.shadowColor = 'rgba(242,236,217,0.5)';
+        ctx.shadowBlur = 8 * scale;
+      }
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      const phase = ringPhase(ring, t);
+      ring.offsets.forEach(off => {
+        const a = phase + off;
+        const px = cx + r * Math.cos(a);
+        const py = cy + r * Math.sin(a);
+        ctx.beginPath();
+        ctx.arc(px, py, 7 * scale, 0, Math.PI * 2);
+        ctx.globalAlpha = planetAlpha;
+        ctx.fillStyle = ring.color;
+        ctx.shadowColor = ring.color;
+        ctx.shadowBlur = glow * scale;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
+      });
+    });
+
+    requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize', () => { resizeCanvas(); });
+
+  resizeCanvas();
+  makeStars();
+  loadLevel(0);
+  requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>

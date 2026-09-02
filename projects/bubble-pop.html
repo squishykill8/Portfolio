@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Bubble Pop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&family=Baloo+2:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: dark;
+  }
+
+  * {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #06101f;
+    font-family: 'Nunito', system-ui, sans-serif;
+    touch-action: manipulation;
+  }
+
+  #game {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom, #0d2659 0%, #054d73 100%);
+    overflow: hidden;
+  }
+
+  #bg-tint {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: hsla(210, 55%, 70%, 0.28);
+    transition: background-color 1.6s ease;
+  }
+
+  #top-bar {
+    position: absolute;
+    top: max(24px, env(safe-area-inset-top));
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  #target {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px 6px 8px;
+    background: rgba(0, 0, 0, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 999px;
+  }
+
+  #target-swatch {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255, 255, 255, 0.8);
+    transition: background-color 1.6s ease;
+    box-shadow: 0 0 8px 1px rgba(255, 255, 255, 0.25);
+  }
+
+  #target-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.85);
+    letter-spacing: 0.3px;
+  }
+
+  #score {
+    font-size: 44px;
+    font-weight: 800;
+    color: #fff;
+    padding: 10px 28px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 999px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .bubble {
+    position: absolute;
+    z-index: 1;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    will-change: transform;
+    transform: translate(-50%, -50%);
+    transition: opacity 0.22s ease-out, transform 0.22s ease-out;
+  }
+
+  .bubble::after {
+    content: "";
+    position: absolute;
+    width: 22%;
+    height: 22%;
+    top: 20%;
+    left: 18%;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.55);
+  }
+
+  .bubble.popping {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.35);
+  }
+
+  .pop-effect {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 2;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  .pop-effect .particle {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    top: 0;
+    left: 0;
+    transform: translate(-3px, -3px) translate(0, 0) scale(1);
+    opacity: 1;
+    transition: transform 0.5s ease-out, opacity 0.5s ease-out;
+  }
+
+  .pop-effect .pop-text {
+    position: absolute;
+    top: -2px;
+    left: 0;
+    transform: translate(-50%, -50%) rotate(-4deg) scale(1);
+    font-family: 'Baloo 2', 'Nunito', system-ui, sans-serif;
+    font-size: 16px;
+    font-weight: 800;
+    color: #fff;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    opacity: 0.95;
+    white-space: nowrap;
+    transition: transform 0.5s ease-out, opacity 0.5s ease-out;
+  }
+
+  .pop-effect .pop-text.bonus {
+    font-size: 19px;
+    color: #ffd43b;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.45), 0 0 10px rgba(255, 212, 59, 0.6);
+  }
+
+  .pop-effect.active .particle {
+    opacity: 0;
+    transform: translate(-3px, -3px) var(--pop-offset) scale(0.3);
+  }
+
+  .pop-effect.active .pop-text {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(-4deg) translateY(-30px) scale(1.15);
+  }
+
+  #hint {
+    position: absolute;
+    bottom: max(20px, env(safe-area-inset-bottom));
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 13px;
+    font-weight: 600;
+    z-index: 10;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div id="game">
+  <div id="bg-tint"></div>
+  <div id="top-bar">
+    <div id="score">0</div>
+    <div id="target">
+      <span id="target-swatch"></span>
+      <span id="target-label">2x this color!</span>
+    </div>
+  </div>
+  <div id="hint">tap to start</div>
+</div>
+
+<script>
+(function () {
+  const gameEl = document.getElementById('game');
+  const scoreEl = document.getElementById('score');
+  const hintEl = document.getElementById('hint');
+  const tintEl = document.getElementById('bg-tint');
+  const targetSwatchEl = document.getElementById('target-swatch');
+
+  let width = gameEl.clientWidth;
+  let height = gameEl.clientHeight;
+  let score = 0;
+  let running = false;
+  let lastTime = null;
+  let spawnTimer = 0;
+  let spawnInterval = 0.9;
+
+  const MAX_BUBBLES = 14;
+  const MIN_SIZE = 34;
+  const MAX_SIZE = 92;
+  const MIN_SPEED = 40; // points/sec
+  const MAX_SPEED = 85;
+
+  // Fixed palette so the background target color can meaningfully match a bubble's color.
+  const PALETTE = [355, 28, 48, 140, 205, 265, 325]; // red, orange, yellow, green, blue, purple, pink
+
+  let targetHue = PALETTE[Math.floor(Math.random() * PALETTE.length)];
+  let targetTimer = 0;
+  let targetInterval = 7;
+
+  const bubbles = new Map(); // id -> { el, ...state }
+  let nextId = 1;
+
+  // ---------- Target color ----------
+  function applyTargetColor() {
+    tintEl.style.backgroundColor = `hsla(${targetHue}, 65%, 78%, 0.30)`;
+    targetSwatchEl.style.backgroundColor = `hsl(${targetHue}, 75%, 62%)`;
+  }
+
+  function pickNewTarget() {
+    let next = targetHue;
+    while (next === targetHue && PALETTE.length > 1) {
+      next = PALETTE[Math.floor(Math.random() * PALETTE.length)];
+    }
+    targetHue = next;
+    applyTargetColor();
+  }
+
+  applyTargetColor();
+
+  // ---------- Audio ----------
+  let audioCtx = null;
+  function getAudioContext() {
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AC();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    return audioCtx;
+  }
+
+  function playPop() {
+    const ctx = getAudioContext();
+    const now = ctx.currentTime;
+    const duration = 0.22;
+    const rise = 0.035;
+
+    // Main bright chirp: rises then falls
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.connect(gain).connect(ctx.destination);
+    osc.frequency.setValueAtTime(500, now);
+    osc.frequency.linearRampToValueAtTime(2000, now + rise);
+    osc.frequency.exponentialRampToValueAtTime(650, now + duration);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.linearRampToValueAtTime(0.5, now + rise);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+    osc.start(now);
+    osc.stop(now + duration + 0.02);
+
+    // Harmonic layer for brightness
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.connect(gain2).connect(ctx.destination);
+    osc2.frequency.setValueAtTime(1000, now);
+    osc2.frequency.linearRampToValueAtTime(4000, now + rise);
+    osc2.frequency.exponentialRampToValueAtTime(1300, now + duration);
+    gain2.gain.setValueAtTime(0.0001, now);
+    gain2.gain.linearRampToValueAtTime(0.18, now + rise);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + duration);
+    osc2.start(now);
+    osc2.stop(now + duration + 0.02);
+
+    // Sparkle tick tail
+    const osc3 = ctx.createOscillator();
+    const gain3 = ctx.createGain();
+    osc3.type = 'sine';
+    osc3.frequency.setValueAtTime(3400, now);
+    osc3.connect(gain3).connect(ctx.destination);
+    gain3.gain.setValueAtTime(0.15, now);
+    gain3.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+    osc3.start(now);
+    osc3.stop(now + 0.1);
+  }
+
+  // ---------- Bubble spawning ----------
+  function weightedSpawnEdge() {
+    const r = Math.random();
+    if (r < 0.7) return 'bottom';
+    if (r < 0.85) return 'left';
+    return 'right';
+  }
+
+  function spawnBubble() {
+    if (bubbles.size >= MAX_BUBBLES) return;
+
+    const size = MIN_SIZE + Math.random() * (MAX_SIZE - MIN_SIZE);
+    const sizeFactor = 1 - (size - MIN_SIZE) / (MAX_SIZE - MIN_SIZE); // 0 big, 1 small
+    const speed = MIN_SPEED + sizeFactor * (MAX_SPEED - MIN_SPEED);
+    const margin = size / 2 + 8;
+    const clampedWidth = Math.max(width, margin * 2 + 1);
+    const clampedHeight = Math.max(height, margin * 2 + 1);
+
+    let baseX, targetBaseX, y;
+    const edge = weightedSpawnEdge();
+    if (edge === 'bottom') {
+      baseX = margin + Math.random() * (clampedWidth - margin * 2);
+      targetBaseX = baseX;
+      y = height + size;
+    } else if (edge === 'left') {
+      baseX = -size; // fully offscreen
+      targetBaseX = margin + Math.random() * (clampedWidth * 0.35);
+      y = clampedHeight * 0.5 + Math.random() * (clampedHeight * 0.5 + size * 0.3);
+    } else {
+      baseX = clampedWidth + size; // fully offscreen
+      targetBaseX = clampedWidth - margin - Math.random() * (clampedWidth * 0.35);
+      y = clampedHeight * 0.5 + Math.random() * (clampedHeight * 0.5 + size * 0.3);
+    }
+
+    const hue = PALETTE[Math.floor(Math.random() * PALETTE.length)];
+    const id = nextId++;
+
+    const el = document.createElement('div');
+    el.className = 'bubble';
+    el.style.width = size + 'px';
+    el.style.height = size + 'px';
+    el.style.background =
+      `radial-gradient(circle at 35% 30%, hsla(${hue},70%,80%,0.75), hsla(${hue},60%,55%,0.9))`;
+    el.style.left = baseX + 'px';
+    el.style.top = y + 'px';
+    gameEl.appendChild(el);
+
+    const state = {
+      el, id, baseX, targetBaseX, x: baseX, y, size, speed, hue,
+      phase: Math.random() * Math.PI * 2,
+      freq: 0.6 + Math.random() * 0.8,
+      amp: 6 + Math.random() * 16,
+      popping: false
+    };
+
+    el.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      pop(state);
+    }, { passive: false });
+
+    bubbles.set(id, state);
+  }
+
+  function pop(state) {
+    if (state.popping) return;
+    state.popping = true;
+
+    const isBonus = state.hue === targetHue;
+    score += isBonus ? 2 : 1;
+    scoreEl.textContent = score;
+
+    state.el.classList.add('popping');
+    playPop();
+    spawnPopEffect(state, isBonus);
+
+    setTimeout(() => {
+      if (state.el.parentNode) state.el.parentNode.removeChild(state.el);
+      bubbles.delete(state.id);
+    }, 230);
+  }
+
+  function spawnPopEffect(state, isBonus) {
+    const wrap = document.createElement('div');
+    wrap.className = 'pop-effect';
+    wrap.style.left = state.x + 'px';
+    wrap.style.top = state.y + 'px';
+
+    const particleCount = 8;
+    const radius = state.size * 0.6 + 10;
+    for (let i = 0; i < particleCount; i++) {
+      const angle = (i / particleCount) * Math.PI * 2;
+      const dx = Math.cos(angle) * radius;
+      const dy = Math.sin(angle) * radius;
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.style.background = isBonus ? '#ffd43b' : `hsl(${state.hue}, 70%, 65%)`;
+      p.style.setProperty('--pop-offset', `translate(${dx}px, ${dy}px)`);
+      wrap.appendChild(p);
+    }
+
+    const text = document.createElement('div');
+    text.className = isBonus ? 'pop-text bonus' : 'pop-text';
+    text.textContent = isBonus ? 'Pop! x2' : 'Pop!';
+    wrap.appendChild(text);
+
+    gameEl.appendChild(wrap);
+
+    // Force layout, then trigger the transition.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        wrap.classList.add('active');
+      });
+    });
+
+    setTimeout(() => {
+      if (wrap.parentNode) wrap.parentNode.removeChild(wrap);
+    }, 550);
+  }
+
+  // ---------- Game loop ----------
+  function tick(timestamp) {
+    if (!running) return;
+    if (lastTime === null) lastTime = timestamp;
+    const dt = Math.min(0.05, (timestamp - lastTime) / 1000);
+    lastTime = timestamp;
+
+    spawnTimer += dt;
+    if (spawnTimer >= spawnInterval) {
+      spawnBubble();
+      spawnTimer = 0;
+      spawnInterval = 0.5 + Math.random() * 0.6;
+    }
+
+    targetTimer += dt;
+    if (targetTimer >= targetInterval) {
+      pickNewTarget();
+      targetTimer = 0;
+      targetInterval = 6 + Math.random() * 4;
+    }
+
+    bubbles.forEach((state) => {
+      if (state.popping) return;
+      state.y -= state.speed * dt;
+
+      if (state.baseX !== state.targetBaseX) {
+        state.baseX += (state.targetBaseX - state.baseX) * Math.min(1, 1.6 * dt);
+        if (Math.abs(state.targetBaseX - state.baseX) < 0.5) {
+          state.baseX = state.targetBaseX;
+        }
+      }
+
+      state.phase += state.freq * dt;
+      state.x = state.baseX + Math.sin(state.phase) * state.amp;
+
+      if (state.y < -state.size) {
+        if (state.el.parentNode) state.el.parentNode.removeChild(state.el);
+        bubbles.delete(state.id);
+        return;
+      }
+
+      state.el.style.left = state.x + 'px';
+      state.el.style.top = state.y + 'px';
+    });
+
+    requestAnimationFrame(tick);
+  }
+
+  function start() {
+    if (running) return;
+    running = true;
+    hintEl.style.display = 'none';
+    lastTime = null;
+    spawnTimer = spawnInterval; // spawn one immediately
+    requestAnimationFrame(tick);
+  }
+
+  function handleResize() {
+    width = gameEl.clientWidth;
+    height = gameEl.clientHeight;
+  }
+
+  window.addEventListener('resize', handleResize);
+
+  gameEl.addEventListener('pointerdown', () => {
+    getAudioContext();
+    if (!running) start();
+  }, { once: false });
+
+})();
+</script>
+</body>
+</html>
