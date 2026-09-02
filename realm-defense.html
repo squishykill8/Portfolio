@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Realm Defense — Dzung Nguyen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blueprint: #1b3e63;
+    --blueprint-dark: #122a42;
+    --blueprint-deep: #0d2033;
+    --grid-line: rgba(242,239,230,0.09);
+    --grid-line-strong: rgba(242,239,230,0.16);
+    --paper: #f2efe6;
+    --paper-dim: #c9d3dd;
+    --amber: #f2a93b;
+    --amber-dim: #b9832f;
+    --coral: #e8615a;
+    --radius: 2px;
+  }
+
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  @media (prefers-reduced-motion: reduce){
+    html{ scroll-behavior:auto; }
+    *{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
+  }
+
+  body{
+    margin:0;
+    background-color:var(--blueprint);
+    background-image:
+      radial-gradient(circle at 85% -10%, rgba(242,169,59,0.10), transparent 45%),
+      linear-gradient(165deg, var(--blueprint-deep) 0%, var(--blueprint) 55%, var(--blueprint-dark) 100%);
+    background-attachment: fixed;
+    color:var(--paper);
+    font-family:'Nunito', sans-serif;
+    line-height:1.55;
+  }
+
+  header, main, footer{ position:relative; z-index:1; }
+
+  a{ color:var(--amber); }
+  a:focus-visible, button:focus-visible{ outline:2px solid var(--amber); outline-offset:3px; }
+
+  .wrap{ max-width:1100px; margin:0 auto; padding:0 28px; }
+
+  /* ---- Header ---- */
+  header{
+    position:sticky; top:0; z-index:50;
+    background:rgba(13,32,51,0.92);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--grid-line-strong);
+  }
+  .header-inner{ display:flex; align-items:center; justify-content:space-between; padding:16px 28px; max-width:1100px; margin:0 auto; }
+  .brand{ font-family:'Fredoka', sans-serif; font-weight:700; font-size:1.35rem; letter-spacing:0.3px; color:var(--paper); text-decoration:none; }
+  .brand span{ color:var(--amber); }
+  nav ul{ display:flex; gap:28px; list-style:none; margin:0; padding:0; }
+  nav a{ color:var(--paper-dim); text-decoration:none; font-size:0.92rem; font-weight:500; }
+  nav a:hover{ color:var(--amber); }
+  @media (max-width:700px){ nav ul{ display:none; } }
+
+  /* ---- Hero ---- */
+  .hero{
+    position:relative; padding:70px 0 50px; overflow:hidden;
+    border-bottom:1px solid var(--grid-line-strong);
+  }
+  .hero-inner{ position:relative; max-width:70ch; }
+  .back-link{ display:inline-flex; align-items:center; gap:6px; font-family:'IBM Plex Mono', monospace; font-size:0.8rem; color:var(--paper-dim); text-decoration:none; margin-bottom:22px; }
+  .back-link:hover{ color:var(--amber); }
+
+  .eyebrow-tag{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:'IBM Plex Mono', monospace; font-size:0.78rem; color:var(--amber);
+    border:1px solid var(--amber-dim); padding:5px 10px; border-radius:var(--radius);
+    margin-bottom:20px;
+  }
+  .eyebrow-tag::before{ content:""; width:6px; height:6px; background:var(--amber); border-radius:50%; display:inline-block; }
+
+  h1{
+    font-family:'Fredoka', sans-serif; font-weight:700;
+    font-size:clamp(2.4rem, 5.5vw, 3.8rem); line-height:0.98;
+    margin:0 0 18px; letter-spacing:0.2px;
+  }
+  .hero p.lede{ max-width:60ch; color:var(--paper-dim); font-size:1.05rem; margin:0; }
+
+  .tag-row{ display:flex; flex-wrap:wrap; gap:8px; margin-top:20px; }
+  .tag{
+    font-family:'IBM Plex Mono', monospace; font-size:0.72rem;
+    padding:4px 9px; border:1px solid var(--paper-dim); color:var(--paper-dim);
+    border-radius:var(--radius);
+  }
+
+  .store-links{ display:flex; gap:20px; flex-wrap:wrap; margin-top:18px; }
+  .store-links a{
+    font-family:'IBM Plex Mono', monospace; font-size:0.82rem;
+    color:var(--paper-dim); text-decoration:none;
+    border-bottom:1px solid transparent; padding-bottom:1px;
+  }
+  .store-links a:hover{ color:var(--amber); border-bottom-color:var(--amber); }
+
+  /* ---- Section shell ---- */
+  section{ padding:60px 0; }
+  .section-head{ max-width:60ch; margin-bottom:32px; }
+  .section-tag{ font-family:'IBM Plex Mono', monospace; font-size:0.8rem; color:var(--amber); display:block; margin-bottom:10px; }
+  h2{ font-family:'Fredoka', sans-serif; font-weight:700; font-size:clamp(1.7rem, 3vw, 2.3rem); margin:0 0 12px; }
+  .section-head p{ color:var(--paper-dim); margin:0; }
+
+  .role-body p{ color:var(--paper-dim); max-width:75ch; margin:0 0 18px; }
+  .role-body strong{ color:var(--paper); }
+  .edit-hint{ color:var(--amber-dim); font-family:'IBM Plex Mono', monospace; font-size:0.75rem; }
+
+  /* ---- Gallery ---- */
+  .gallery-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; }
+  @media (max-width:900px){ .gallery-grid{ grid-template-columns:repeat(2, 1fr); } }
+  @media (max-width:560px){ .gallery-grid{ grid-template-columns:1fr; } }
+  .gallery-item{
+    aspect-ratio:1/1; overflow:hidden; border:1px solid var(--grid-line-strong);
+    border-radius:var(--radius); cursor:pointer; background:var(--blueprint-dark);
+    padding:0; display:flex; align-items:center; justify-content:center;
+  }
+  .gallery-item img{ width:100%; height:100%; object-fit:cover; display:block; transition:transform 0.2s ease; }
+  .gallery-item:hover img{ transform:scale(1.05); }
+
+  .empty-note{
+    font-family:'IBM Plex Mono', monospace; color:var(--paper-dim);
+    border:1px dashed var(--grid-line-strong); border-radius:var(--radius);
+    padding:24px; font-size:0.9rem;
+  }
+
+  footer{ padding:30px 0; text-align:center; color:var(--paper-dim); font-family:'IBM Plex Mono', monospace; font-size:0.78rem; border-top:1px solid var(--grid-line-strong); }
+
+  /* ---- Lightbox ---- */
+  .lightbox-overlay{
+    position:fixed; inset:0; background:rgba(13,20,32,0.92);
+    display:none; align-items:center; justify-content:center;
+    z-index:100; padding:20px;
+  }
+  .lightbox-overlay.open{ display:flex; }
+  .lightbox-overlay img{ max-width:90vw; max-height:82vh; border:1px solid var(--grid-line-strong); }
+  .lightbox-close{
+    position:absolute; top:20px; right:24px;
+    background:none; border:1px solid var(--paper-dim); color:var(--paper);
+    border-radius:var(--radius); width:36px; height:36px; cursor:pointer; font-size:1.1rem;
+  }
+  .lightbox-close:hover{ border-color:var(--amber); color:var(--amber); }
+  .lightbox-nav{
+    position:absolute; top:50%; transform:translateY(-50%);
+    background:none; border:1px solid var(--paper-dim); color:var(--paper);
+    border-radius:var(--radius); width:44px; height:44px; cursor:pointer; font-size:1.3rem;
+  }
+  .lightbox-nav:hover{ border-color:var(--amber); color:var(--amber); }
+  .lightbox-prev{ left:20px; }
+  .lightbox-next{ right:20px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a class="brand" href="index.html">Dzung Nguyen <span>/ Game Designer & Developer</span></a>
+    <nav>
+      <ul>
+        <li><a href="index.html#studio-work">Studio Work</a></li>
+        <li><a href="index.html#about">About</a></li>
+        <li><a href="index.html#contact">Contact</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <section class="hero">
+    <div class="wrap hero-inner">
+      <a class="back-link" href="index.html">&larr; Back to home</a>
+      <span class="eyebrow-tag">Studio Work</span>
+      <h1>Realm Defense</h1>
+      <p class="lede">A fantasy tower-defense strategy game — players build and upgrade towers, recruit heroes, and cast spells to hold off waves of enemies across an evolving map.</p>
+      <div class="tag-row">
+        <span class="tag">Mobile</span>
+        <span class="tag">Tower Defense</span>
+        <span class="tag">Live Service</span>
+      </div>
+      <div class="store-links">
+        <a href="https://apps.apple.com/us/app/realm-defense-hero-legends-td/id1197076384" target="_blank" rel="noopener">App Store &#8599;</a>
+        <a href="https://play.google.com/store/apps/details?id=com.babeltimeus.legendstd&hl=en" target="_blank" rel="noopener">Google Play &#8599;</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="role">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="section-tag">MY ROLE</span>
+        <h2>What I worked on</h2>
+      </div>
+      <div class="role-body">
+        <p><em>[Edit this section — describe your specific role and contributions on Realm Defense: what you owned, systems or content you designed, and any results or impact you can share.]</em></p>
+        <p class="edit-hint">← replace this paragraph in the &lt;section id="role"&gt; block</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="gallery">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="section-tag">GALLERY</span>
+        <h2>Screenshots</h2>
+        <p>Click any image to view it larger.</p>
+      </div>
+      <div class="gallery-grid" id="gallery-grid">
+        <!-- filled in by JS -->
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  Dzung Nguyen — Personal Website
+</footer>
+
+<div class="lightbox-overlay" id="lightbox-overlay">
+  <button class="lightbox-nav lightbox-prev" id="lightbox-prev" aria-label="Previous image">&#8249;</button>
+  <img id="lightbox-img" src="" alt="">
+  <button class="lightbox-nav lightbox-next" id="lightbox-next" aria-label="Next image">&#8250;</button>
+  <button class="lightbox-close" id="lightbox-close" aria-label="Close">✕</button>
+</div>
+
+<script>
+  /* ============================================================
+     ADD YOUR SCREENSHOTS HERE
+     ------------------------------------------------------------
+     List the path to each screenshot. Place the image files in an
+     "images/" folder next to this page (e.g. images/realm-defense-01.png).
+     Add or remove entries freely — the gallery grid and lightbox
+     both update automatically.
+
+     The entries below are hotlinked directly from Realm Defense's
+     official Google Play listing, since that's where actual screenshots
+     were available to pull. Swap these for your own hosted copies
+     whenever you have better ones — hotlinked images depend on
+     Google's CDN staying up and the listing keeping them in place.
+     ============================================================ */
+
+  const screenshots = [
+    "https://play-lh.googleusercontent.com/DDzYF_XtZ1Iugpe7ZpEPDKYV8vBpcypXKUGPNo3SE835p6SqN9DMJ3ZaQ-PryV0GMzt12FzCq8TAvhuYvpfFeA=w1000-h563",
+    "https://play-lh.googleusercontent.com/yLGzxH8FSRiwhjdaUpgtphfVfmxBxHvKAU3D0qhq9QBYS1ZR-GrokpMkj5wDx3GW6C1WAEjskg_ipW8Bfc53RA=w1000-h563",
+    "https://play-lh.googleusercontent.com/qlsN1p2Xt0yqyElfme9k9gkrvDvplxzxTq81zd_cYXpMlJ_kBUK_U2V53M5SHcIgIj7z0mXjR1ZnHaqYvbkUbg=w1000-h563",
+    "https://play-lh.googleusercontent.com/jpoaUq3ckUCtOnEyz02wNA4p8GkOafx-3auafsf8-TReLV9c5tFYuSuYlmgnbe1R5fiYKaCY6BlEZutX38swJw=w1000-h563",
+    "https://play-lh.googleusercontent.com/ep4cqIsGKAyv1N1nxhB7wyXEyztQRGer1l9y5DmQpi4pf3UXrYV6p8CluBZ5ic41QzC7nK-6MGcGkAdrooHQ=w1000-h563",
+    "https://play-lh.googleusercontent.com/E1Fv2q6w5NPmhRdzH8dB-QwiquHKlSWEqWjS_2QUqma22Jmgsk9aEE7WZYjSREPYWG7JeT_9noSatnnBU3YlEQ=w1000-h563",
+    "https://play-lh.googleusercontent.com/kR0e5HWDEMoigI0FqxqpfeoEdnxslDLIyNNBJ0TewiWwRuRj-neGZ7EnPf49rOML-pwLOCmfLGZAfe3wDm8d=w1000-h563",
+    "https://play-lh.googleusercontent.com/QBGXR-mvfFh-6oRWdgad5xhS5Q70xp3ia9M32cbH6TyLqaw-Ldaa3xwjCPB7cUhoNH3pIW62otHX--r_0cWC=w1000-h563"
+  ];
+
+  const grid = document.getElementById('gallery-grid');
+
+  if (screenshots.length === 0) {
+    grid.innerHTML = `<div class="empty-note">No screenshots yet — add image paths to the "screenshots" array near the bottom of this file.</div>`;
+  } else {
+    screenshots.forEach((src, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'gallery-item';
+      btn.dataset.index = i;
+      btn.innerHTML = `<img src="${src}" alt="Realm Defense screenshot ${i + 1}" loading="lazy" onerror="this.closest('.gallery-item').remove();">`;
+      grid.appendChild(btn);
+    });
+  }
+
+  // ---- lightbox wiring ----
+  const overlay = document.getElementById('lightbox-overlay');
+  const lbImg = document.getElementById('lightbox-img');
+  const btnClose = document.getElementById('lightbox-close');
+  const btnPrev = document.getElementById('lightbox-prev');
+  const btnNext = document.getElementById('lightbox-next');
+  let currentIndex = 0;
+
+  function openLightbox(i){
+    currentIndex = i;
+    lbImg.src = screenshots[currentIndex];
+    overlay.classList.add('open');
+  }
+  function closeLightbox(){
+    overlay.classList.remove('open');
+    lbImg.src = '';
+  }
+  function showNext(){ currentIndex = (currentIndex + 1) % screenshots.length; lbImg.src = screenshots[currentIndex]; }
+  function showPrev(){ currentIndex = (currentIndex - 1 + screenshots.length) % screenshots.length; lbImg.src = screenshots[currentIndex]; }
+
+  grid.addEventListener('click', (e) => {
+    const item = e.target.closest('.gallery-item');
+    if (!item) return;
+    openLightbox(Number(item.dataset.index));
+  });
+
+  btnClose.addEventListener('click', closeLightbox);
+  btnNext.addEventListener('click', showNext);
+  btnPrev.addEventListener('click', showPrev);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeLightbox(); });
+  document.addEventListener('keydown', (e) => {
+    if (!overlay.classList.contains('open')) return;
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowRight') showNext();
+    if (e.key === 'ArrowLeft') showPrev();
+  });
+</script>
+
+</body>
+</html>
