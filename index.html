@@ -6,7 +6,7 @@
 <title>Dzung Nguyen - Portfolio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root{
     --blueprint: #1b3e63;
@@ -33,27 +33,13 @@
     margin:0;
     background-color:var(--blueprint);
     background-image:
-      linear-gradient(var(--grid-line) 1px, transparent 1px),
-      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
-    background-size: 40px 40px;
+      radial-gradient(circle at 85% -10%, rgba(242,169,59,0.10), transparent 45%),
+      linear-gradient(165deg, var(--blueprint-deep) 0%, var(--blueprint) 55%, var(--blueprint-dark) 100%);
     background-attachment: fixed;
     color:var(--paper);
-    font-family:'IBM Plex Sans', sans-serif;
+    font-family:'Nunito', sans-serif;
     line-height:1.55;
   }
-
-  .bg-motifs{
-    position:fixed; inset:0; z-index:0;
-    pointer-events:none; overflow:hidden;
-  }
-  .bg-motifs svg{ position:absolute; opacity:0.07; }
-  .bg-motifs svg.m1{ top:8%; left:3%; width:150px; height:150px; }
-  .bg-motifs svg.m2{ top:58%; right:5%; width:130px; height:130px; }
-  .bg-motifs svg.m3{ bottom:6%; left:8%; width:110px; height:110px; }
-  .bg-motifs svg.m4{ top:22%; right:14%; width:90px; height:90px; }
-  @media (max-width:800px){ .bg-motifs svg{ display:none; } }
-
-  header, main, footer{ position:relative; z-index:1; }
 
   a{ color:var(--amber); }
   a:focus-visible, button:focus-visible{ outline:2px solid var(--amber); outline-offset:3px; }
@@ -68,7 +54,7 @@
     border-bottom:1px solid var(--grid-line-strong);
   }
   .header-inner{ display:flex; align-items:center; justify-content:space-between; padding:16px 28px; max-width:1100px; margin:0 auto; }
-  .brand{ font-family:'Big Shoulders Display', sans-serif; font-weight:800; font-size:1.35rem; letter-spacing:0.3px; color:var(--paper); text-decoration:none; }
+  .brand{ font-family:'Fredoka', sans-serif; font-weight:700; font-size:1.35rem; letter-spacing:0.3px; color:var(--paper); text-decoration:none; }
   .brand span{ color:var(--amber); }
   nav ul{ display:flex; gap:28px; list-style:none; margin:0; padding:0; }
   nav a{ color:var(--paper-dim); text-decoration:none; font-size:0.92rem; font-weight:500; }
@@ -85,15 +71,6 @@
     overflow:hidden;
     border-bottom:1px solid var(--grid-line-strong);
   }
-  .hero::before{
-    content:"";
-    position:absolute; inset:0;
-    background-image:
-      linear-gradient(var(--grid-line) 1px, transparent 1px),
-      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
-    background-size: 40px 40px;
-    mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
-  }
   .hero-inner{ position:relative; max-width:64ch; }
 
   .eyebrow-tag{
@@ -105,8 +82,8 @@
   .eyebrow-tag::before{ content:""; width:6px; height:6px; background:var(--amber); border-radius:50%; display:inline-block; }
 
   h1{
-    font-family:'Big Shoulders Display', sans-serif;
-    font-weight:900;
+    font-family:'Fredoka', sans-serif;
+    font-weight:700;
     font-size:clamp(2.6rem, 6vw, 4.4rem);
     line-height:0.98;
     margin:0 0 20px;
@@ -116,7 +93,7 @@
 
   .cta-row{ display:flex; gap:14px; flex-wrap:wrap; }
   .btn{
-    font-family:'IBM Plex Sans', sans-serif; font-weight:600; font-size:0.95rem;
+    font-family:'Nunito', sans-serif; font-weight:600; font-size:0.95rem;
     padding:12px 22px; border-radius:var(--radius); text-decoration:none;
     border:1px solid transparent; display:inline-block; cursor:pointer;
     transition:transform 0.15s ease, background 0.15s ease;
@@ -137,20 +114,19 @@
     border-right:1px solid var(--grid-line-strong);
   }
   .stat:last-child{ border-right:none; }
-  .stat .num{ font-family:'Big Shoulders Display', sans-serif; font-weight:800; font-size:2.2rem; color:var(--amber); display:block; }
+  .stat .num{ font-family:'Fredoka', sans-serif; font-weight:700; font-size:2.2rem; color:var(--amber); display:block; }
   .stat .label{ font-family:'IBM Plex Mono', monospace; font-size:0.76rem; color:var(--paper-dim); }
 
   /* ---- Section shell ---- */
   section{ padding:70px 0; }
   .section-head{ max-width:60ch; margin-bottom:40px; }
   .section-tag{ font-family:'IBM Plex Mono', monospace; font-size:0.8rem; color:var(--amber); display:block; margin-bottom:10px; }
-  h2{ font-family:'Big Shoulders Display', sans-serif; font-weight:800; font-size:clamp(1.8rem, 3.5vw, 2.6rem); margin:0 0 12px; }
+  h2{ font-family:'Fredoka', sans-serif; font-weight:700; font-size:clamp(1.8rem, 3.5vw, 2.6rem); margin:0 0 12px; }
   .section-head p{ color:var(--paper-dim); margin:0; }
 
   /* ---- Project grid (rendered by JS) ---- */
-  .project-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:24px; }
-  @media (max-width:900px){ .project-grid{ grid-template-columns:repeat(2, 1fr); } }
-  @media (max-width:560px){ .project-grid{ grid-template-columns:1fr; } }
+  .project-grid{ display:grid; grid-template-columns:repeat(2, 1fr); gap:24px; }
+  @media (max-width:800px){ .project-grid{ grid-template-columns:1fr; } }
 
   .card{
     position:relative;
@@ -170,11 +146,11 @@
   .card::after{ bottom:8px; right:8px; border-bottom:2px solid; border-right:2px solid; }
 
   .card-image{
-    width:100%; aspect-ratio:1/1; object-fit:cover;
+    width:100%; aspect-ratio:16/9; object-fit:cover;
     border:1px solid var(--grid-line-strong); border-radius:var(--radius);
     margin-bottom:18px; background:var(--blueprint-deep);
   }
-  .card h3{ font-family:'Big Shoulders Display', sans-serif; font-weight:800; font-size:1.5rem; margin:0 0 10px; letter-spacing:0.2px; }
+  .card h3{ font-family:'Fredoka', sans-serif; font-weight:700; font-size:1.5rem; margin:0 0 10px; letter-spacing:0.2px; }
   .card p{ color:var(--paper-dim); font-size:0.95rem; margin:0 0 18px; flex-grow:1; }
   .tag-row{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px; }
   .tag{
@@ -215,7 +191,7 @@
     display:flex; flex-direction:column; border-radius:var(--radius);
   }
   .modal-head{ display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--grid-line-strong); }
-  .modal-head h3{ font-family:'Big Shoulders Display', sans-serif; font-size:1.2rem; margin:0; }
+  .modal-head h3{ font-family:'Fredoka', sans-serif; font-size:1.2rem; margin:0; }
   .modal-head .actions{ display:flex; gap:10px; align-items:center; }
   .modal-close{ background:none; border:1px solid var(--paper-dim); color:var(--paper); border-radius:var(--radius); width:32px; height:32px; cursor:pointer; font-size:1rem; }
   .modal-close:hover{ border-color:var(--amber); color:var(--amber); }
@@ -224,54 +200,13 @@
 </head>
 <body>
 
-<div class="bg-motifs" aria-hidden="true">
-  <!-- gamepad -->
-  <svg class="m1" viewBox="0 0 120 80" fill="none" stroke="#f2efe6" stroke-width="1.5">
-    <path d="M25 25 h70 a20 20 0 0 1 20 20 v5 a15 15 0 0 1 -15 15 a12 12 0 0 1 -10 -5 l-8 -10 h-44 l-8 10 a12 12 0 0 1 -10 5 a15 15 0 0 1 -15 -15 v-5 a20 20 0 0 1 20 -20 z"/>
-    <line x1="40" y1="40" x2="40" y2="52"/>
-    <line x1="34" y1="46" x2="46" y2="46"/>
-    <circle cx="85" cy="42" r="3.5"/>
-    <circle cx="95" cy="50" r="3.5"/>
-  </svg>
-
-  <!-- joystick -->
-  <svg class="m2" viewBox="0 0 100 120" fill="none" stroke="#f2a93b" stroke-width="1.5">
-    <ellipse cx="50" cy="100" rx="35" ry="12"/>
-    <line x1="50" y1="88" x2="50" y2="35"/>
-    <circle cx="50" cy="22" r="14"/>
-    <circle cx="30" cy="95" r="4"/>
-    <circle cx="70" cy="95" r="4"/>
-  </svg>
-
-  <!-- d20 die -->
-  <svg class="m3" viewBox="0 0 100 100" fill="none" stroke="#f2efe6" stroke-width="1.5">
-    <polygon points="50,5 90,28 90,72 50,95 10,72 10,28"/>
-    <line x1="50" y1="5" x2="50" y2="95"/>
-    <line x1="10" y1="28" x2="50" y2="50"/>
-    <line x1="90" y1="28" x2="50" y2="50"/>
-    <line x1="10" y1="72" x2="50" y2="50"/>
-    <line x1="90" y1="72" x2="50" y2="50"/>
-  </svg>
-
-  <!-- pixel heart -->
-  <svg class="m4" viewBox="0 0 90 80" fill="#e8615a" stroke="none">
-    <rect x="10" y="10" width="20" height="20"/>
-    <rect x="60" y="10" width="20" height="20"/>
-    <rect x="0" y="30" width="20" height="20"/>
-    <rect x="30" y="30" width="20" height="20"/>
-    <rect x="60" y="30" width="20" height="20"/>
-    <rect x="20" y="50" width="20" height="20"/>
-    <rect x="50" y="50" width="20" height="20"/>
-    <rect x="35" y="65" width="20" height="15"/>
-  </svg>
-</div>
-
 <header>
   <div class="header-inner">
     <a class="brand" href="#top">Dzung Nguyen <span>/ Game Designer & Developer</span></a>
     <nav>
       <ul>
         <li><a href="#work">Prototypes</a></li>
+        <li><a href="#studio-work">Studio Work</a></li>
         <li><a href="#about">About</a></li>
         <li><a href="#contact">Contact</a></li>
         <li><a href="files/resume.pdf" target="_blank" rel="noopener">Resume</a></li>
@@ -284,8 +219,8 @@
 
   <section class="hero">
     <div class="wrap hero-inner">
-      <h1>Playable ideas,<br>built fast.</h1>
-      <p class="lede">A running collection of game prototypes and interactive experiments designed and developed through iteration.</p>
+      <h1>Playable ideas</h1>
+      <p class="lede">Below is a collection of game prototypes and interactive experiments designed and developed through iteration. The designs are by me and the game is build via Claude</p>
       <div class="cta-row">
         <a href="#work" class="btn btn-primary">Browse projects</a>
         <a href="#contact" class="btn btn-ghost">Get in touch</a>
@@ -301,12 +236,50 @@
     <div class="wrap">
       <div class="section-head">
         <span class="section-tag">PROJECTS</span>
-        <h2>AI-generated Projects</h2>
-        <p>Click "Play" on any project to try it right here.</p>
+        <h2>The gallery</h2>
+        <p>Click "Play" on any project to try it right here. Everything below is generated from the list at the bottom of this file — add an entry there and it shows up here automatically.</p>
       </div>
 
       <div class="project-grid" id="project-grid">
         <!-- filled in by JS -->
+      </div>
+    </div>
+  </section>
+
+  <section id="studio-work">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="section-tag">STUDIO WORK</span>
+        <h2>Professional projects</h2>
+        <p>Live, published titles I've worked on as part of my career in the game industry.</p>
+      </div>
+
+      <div class="project-grid" style="grid-template-columns:repeat(2, 1fr);">
+        <div class="card">
+          <img class="card-image" src="images/project-makeover-cover.png" alt="Project Makeover cover" onerror="this.remove();">
+          <h3>Project Makeover</h3>
+          <p>A home-renovation match-3 game blending interior design with puzzle gameplay.</p>
+          <div class="tag-row">
+            <span class="tag">Mobile</span>
+            <span class="tag">Live Service</span>
+          </div>
+          <div class="card-actions">
+            <a href="project-makeover.html" class="btn btn-primary">View project</a>
+          </div>
+        </div>
+
+        <div class="card">
+          <img class="card-image" src="images/realm-defense-cover.png" alt="Realm Defense cover" onerror="this.remove();">
+          <h3>Realm Defense</h3>
+          <p>A fantasy tower-defense strategy game with heroes, spells, and evolving maps.</p>
+          <div class="tag-row">
+            <span class="tag">Mobile</span>
+            <span class="tag">Live Service</span>
+          </div>
+          <div class="card-actions">
+            <a href="realm-defense.html" class="btn btn-primary">View project</a>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -429,11 +402,6 @@
   const statsStrip = document.getElementById('stats-strip');
   const tagCount = new Set(projects.flatMap(p => p.tags || [])).size;
   const playableCount = projects.filter(p => p.file).length;
-  statsStrip.innerHTML = `
-    <div class="stat"><span class="num">${projects.length}</span><span class="label">PROJECTS</span></div>
-    <div class="stat"><span class="num">${playableCount}</span><span class="label">PLAYABLE HERE</span></div>
-    <div class="stat"><span class="num">${tagCount}</span><span class="label">TAGS IN USE</span></div>
-  `;
 
   // ---- render project grid ----
   const grid = document.getElementById('project-grid');
