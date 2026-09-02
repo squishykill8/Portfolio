@@ -1,0 +1,2346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Merge Armada — Squadron Defense</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-top:#0a0e1f;
+    --bg-bot:#151c3a;
+    --panel:#ffffff10;
+    --gold:#ffd76a;
+    --gold-dark:#a8792f;
+    --cream:#f2ecdd;
+    --danger:#ff5c5c;
+    --ok:#6be08a;
+    --cyan:#5fe0e6;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    min-height:100vh;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    background:
+      radial-gradient(ellipse at 50% -10%, #24325c 0%, transparent 55%),
+      linear-gradient(180deg, var(--bg-top), var(--bg-bot) 65%);
+    font-family:'DM Sans', sans-serif;
+    color:var(--cream);
+    padding:18px 12px 34px;
+    position:relative;
+  }
+
+  /* ---------- Space background ---------- */
+  .space-bg{ position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none; }
+  .stars{ position:absolute; left:0; top:-50%; width:100%; height:220%; background-repeat:repeat; }
+  .layer1{
+    background-image:
+      radial-gradient(1.4px 1.4px at 10% 10%, #fff 0, transparent 60%),
+      radial-gradient(1.4px 1.4px at 40% 70%, #fff 0, transparent 60%),
+      radial-gradient(1.4px 1.4px at 75% 30%, #fff 0, transparent 60%),
+      radial-gradient(1.4px 1.4px at 90% 80%, #fff 0, transparent 60%),
+      radial-gradient(1px 1px at 25% 45%, #fff 0, transparent 60%),
+      radial-gradient(1px 1px at 60% 15%, #fff 0, transparent 60%);
+    background-size:340px 340px;
+    opacity:.55;
+    animation:starDrift 90s linear infinite;
+  }
+  .layer2{
+    background-image:
+      radial-gradient(2px 2px at 20% 20%, #cfe4ff 0, transparent 60%),
+      radial-gradient(2px 2px at 55% 60%, #cfe4ff 0, transparent 60%),
+      radial-gradient(1.5px 1.5px at 80% 10%, #cfe4ff 0, transparent 60%),
+      radial-gradient(1.5px 1.5px at 35% 85%, #cfe4ff 0, transparent 60%);
+    background-size:520px 520px;
+    opacity:.4;
+    animation:starDrift 150s linear infinite;
+  }
+  .layer3{
+    background-image:
+      radial-gradient(2.5px 2.5px at 30% 30%, #ffe7a6 0, transparent 60%),
+      radial-gradient(2px 2px at 70% 65%, #ffe7a6 0, transparent 60%);
+    background-size:700px 700px;
+    opacity:.3;
+    animation:starDrift 240s linear infinite;
+  }
+  @keyframes starDrift{ from{background-position:0 0;} to{background-position:0 2000px;} }
+  .planet{ position:absolute; border-radius:50%; opacity:.85; }
+  .planet-a{
+    width:220px; height:220px; top:8%; left:-60px;
+    background:radial-gradient(circle at 35% 30%, #8fb2ff, #33437a 70%);
+    box-shadow:0 0 60px 10px #4560c033;
+    animation:planetDriftA 140s linear infinite;
+  }
+  .planet-b{
+    width:140px; height:140px; top:55%; right:-50px;
+    background:radial-gradient(circle at 40% 35%, #ffb98f, #7a3a1f 70%);
+    box-shadow:0 0 50px 8px #ff8f4f22;
+    animation:planetDriftB 200s linear infinite;
+  }
+  .planet-c{
+    width:90px; height:90px; top:78%; left:12%;
+    background:radial-gradient(circle at 40% 30%, #d0ffe0, #245038 70%);
+    opacity:.5;
+    animation:planetDriftC 260s linear infinite;
+  }
+  @keyframes planetDriftA{ from{transform:translateY(0);} to{transform:translateY(1400px);} }
+  @keyframes planetDriftB{ from{transform:translateY(0);} to{transform:translateY(-1200px);} }
+  @keyframes planetDriftC{ from{transform:translateY(0);} to{transform:translateY(1000px);} }
+
+  .sound-toggle{
+    position:fixed; top:14px; right:14px; z-index:95;
+    width:36px; height:36px; border-radius:50%;
+    border:1px solid #ffffff30; background:#ffffff14; color:#fff;
+    font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  }
+
+  .wrap{
+    width:100%;
+    max-width:460px;
+    flex-direction:column;
+    align-items:center;
+    gap:14px;
+  }
+  .screen{display:none;}
+  .screen.active{display:flex;}
+
+  .masthead{text-align:center;}
+  .eyebrow{
+    font-family:'DM Mono', monospace;
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    font-size:11px;
+    color:var(--gold);
+    margin:0 0 4px;
+  }
+  h1{
+    font-family:'Baloo 2', sans-serif;
+    font-weight:800;
+    font-size:clamp(28px,7vw,40px);
+    margin:0;
+    letter-spacing:.01em;
+    text-shadow:0 3px 0 rgba(0,0,0,.3);
+  }
+  .sub{
+    font-size:13px;
+    color:#c9d2ea;
+    margin:6px 0 0;
+    max-width:420px;
+    text-align:center;
+  }
+
+  /* ---------- Hangar ---------- */
+  .hangar-stats{
+    width:100%;
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:6px;
+    background:var(--panel);
+    border:1px solid #ffffff22;
+    border-radius:14px;
+    padding:10px;
+    font-family:'DM Mono', monospace;
+  }
+  .hangar-stats .stat{display:flex; flex-direction:column; align-items:center; gap:3px;}
+  .hangar-stats .lbl{font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:#a9b4d6;}
+  .hangar-stats .val{font-size:16px; font-weight:500; color:var(--gold);}
+
+  .section-label{
+    width:100%; font-family:'DM Mono',monospace; font-size:10px; letter-spacing:.12em;
+    text-transform:uppercase; color:#a9b4d6; margin-top:2px;
+  }
+
+  .upgrade-list{ width:100%; display:flex; flex-direction:column; gap:8px; }
+  .upgrade-card{
+    background:var(--panel); border:1px solid #ffffff1c; border-radius:12px;
+    padding:10px 12px; display:flex; flex-direction:column; gap:4px;
+  }
+  .uc-head{display:flex; justify-content:space-between; align-items:baseline; gap:8px;}
+  .uc-name{font-family:'Baloo 2', sans-serif; font-weight:700; font-size:14.5px;}
+  .uc-rank{font-family:'DM Mono',monospace; font-size:10px; color:#a9b4d6; white-space:nowrap;}
+  .uc-desc{font-size:11px; color:#b6c0dd;}
+  .uc-effect{font-family:'DM Mono',monospace; font-size:11px; color:var(--cyan);}
+  .uc-buy{
+    align-self:flex-end; margin-top:2px;
+    font-family:'Baloo 2', sans-serif; font-weight:700; font-size:13px;
+    color:#2a1e05; background:linear-gradient(180deg, #ffe7a6, var(--gold));
+    border:none; border-radius:999px; padding:7px 16px; cursor:pointer;
+    box-shadow:0 4px 0 var(--gold-dark); transition:transform .1s ease;
+  }
+  .uc-buy:active:not(:disabled){transform:translateY(3px); box-shadow:0 1px 0 var(--gold-dark);}
+  .uc-buy:disabled{opacity:.4; cursor:default; box-shadow:none;}
+
+  .unlock-list{ width:100%; display:flex; flex-direction:column; gap:8px; }
+  .unlock-card{
+    background:linear-gradient(135deg, #ffd76a22, #ffffff10);
+    border:1.5px solid #ffd76a55; border-radius:12px;
+    padding:10px 12px; display:flex; flex-direction:column; gap:4px;
+  }
+  .unlock-card.owned{ border-color:#6be08a66; background:linear-gradient(135deg,#6be08a1c,#ffffff10); }
+
+  /* ---------- Sector map ---------- */
+  .map-strip{ width:100%; display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .map-loop-label{
+    font-family:'DM Mono',monospace; font-size:10px; letter-spacing:.12em;
+    text-transform:uppercase; color:#a9b4d6;
+  }
+  .map-nodes{
+    width:100%; display:flex; align-items:center; justify-content:space-between;
+    position:relative; padding:4px 2px;
+  }
+  .map-nodes::before{
+    content:''; position:absolute; left:16px; right:16px; top:50%; height:2px;
+    background:repeating-linear-gradient(90deg, #ffffff35 0 6px, transparent 6px 12px);
+    z-index:0;
+  }
+  .map-node{ position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; }
+  .map-node-badge{
+    width:30px; height:30px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; font-size:15px;
+    background:var(--node-color, #666);
+    box-shadow:inset 0 -6px 10px rgba(0,0,0,.35), inset 0 4px 6px rgba(255,255,255,.25);
+    border:2px solid #ffffff30;
+    opacity:.4; filter:grayscale(.6);
+    transition:opacity .2s ease, filter .2s ease, box-shadow .2s ease, transform .2s ease;
+  }
+  .map-node.done .map-node-badge{ opacity:.85; filter:none; border-color:#ffffff55; }
+  .map-node.current .map-node-badge{
+    opacity:1; filter:none; border-color:var(--gold);
+    box-shadow:0 0 12px 3px #ffd76a99; transform:scale(1.18);
+    animation:mapPulse 1.4s ease-in-out infinite;
+  }
+  @keyframes mapPulse{
+    0%,100%{box-shadow:0 0 10px 2px #ffd76a88;}
+    50%{box-shadow:0 0 16px 6px #ffd76acc;}
+  }
+
+  /* ---------- Game ---------- */
+  .hud{
+    width:100%; display:grid; grid-template-columns:repeat(4,1fr); gap:6px;
+    background:var(--panel); border:1px solid #ffffff22; border-radius:14px;
+    padding:10px 10px; font-family:'DM Mono', monospace;
+  }
+  .hud .stat{display:flex; flex-direction:column; align-items:center; gap:3px;}
+  .hud .stat .lbl{font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:#a9b4d6;}
+  .hud .stat .val{font-size:12.5px; font-weight:500; color:var(--cream);}
+  .hud .bar{width:100%; height:5px; border-radius:3px; background:#00000040; overflow:hidden; margin-top:2px;}
+  .hud .bar .fill{height:100%; transition:width .25s ease;}
+  .fill.energy{background:var(--cyan);}
+  .fill.base{background:var(--ok);}
+  .fill.kills{background:var(--gold);}
+
+  .level-label{ font-family:'Baloo 2', sans-serif; font-weight:700; font-size:15px; color:var(--gold); text-align:center; }
+
+  .field{
+    position:relative;
+    background:linear-gradient(180deg, #0f1631, #0a0f22 60%);
+    border-radius:18px;
+    box-shadow:0 20px 40px -12px rgba(0,0,0,.55), inset 0 0 0 1px #ffffff14;
+    overflow:hidden;
+  }
+  .sky-zone{
+    position:absolute; left:0; top:0;
+    background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.01));
+    pointer-events:none; z-index:0;
+  }
+  .col-divider{ position:absolute; top:0; width:1px; background:rgba(255,255,255,.09); pointer-events:none; z-index:0; }
+  .defense-line{ position:absolute; left:6px; right:6px; border-top:2px dashed #ffd76a55; pointer-events:none; z-index:2; }
+  .defense-line span{
+    position:absolute; top:-9px; left:50%; transform:translateX(-50%);
+    font-family:'DM Mono',monospace; font-size:8px; letter-spacing:.1em;
+    color:#ffd76aaa; background:#0a0f22; padding:0 6px; white-space:nowrap;
+  }
+
+  .deploy{
+    position:absolute; background:#ffffff0d; border:1.5px dashed #ffffff26; border-radius:8px;
+    cursor:grab; display:flex; align-items:center; justify-content:center;
+    touch-action:none; user-select:none; -webkit-user-select:none; z-index:1;
+    transition:background .15s ease, outline .15s ease, box-shadow .15s ease, opacity .15s ease;
+  }
+  .deploy.empty{cursor:default;}
+  .deploy.dragging-source{opacity:.25;}
+  .deploy.drop-move{outline:2px dashed var(--ok); box-shadow:0 0 10px 1px #6be08a77;}
+  .deploy.drop-merge{outline:2px solid var(--gold); box-shadow:0 0 14px 3px #ffd76a99;}
+  .deploy.drop-invalid{outline:2px solid var(--danger); box-shadow:0 0 10px 2px #ff5c5c77;}
+  .deploy.tap-selected{outline:2px solid var(--gold); box-shadow:0 0 12px 3px #ffd76a99;}
+  .deploy.tap-candidate{outline:2px dashed var(--ok); box-shadow:0 0 12px 2px #6be08a99; animation:candidatePulse 1s ease-in-out infinite;}
+  .deploy.tier-1{ border-color:#6be08a55; box-shadow:0 0 6px 1px #6be08a33; }
+  .deploy.tier-2{ border-color:#5fc9ff66; box-shadow:0 0 8px 1px #5fc9ff44; }
+  .deploy.tier-3{ border-color:#d38dff77; box-shadow:0 0 10px 2px #d38dff55; }
+  .deploy.tier-4{
+    border-color:#ffd76a; box-shadow:0 0 10px 2px #ffd76a88;
+    animation:tierGlow4 1.8s ease-in-out infinite;
+  }
+  @keyframes candidatePulse{
+    0%,100%{box-shadow:0 0 8px 1px #6be08a77;}
+    50%{box-shadow:0 0 14px 4px #6be08acc;}
+  }
+  @keyframes tierGlow4{
+    0%,100%{ box-shadow:0 0 10px 2px #ffd76a88; }
+    50%{ box-shadow:0 0 22px 8px #fff4cfcc; }
+  }
+  .ship-icon{width:78%; height:78%; pointer-events:none;}
+  .ship-icon svg{display:block; width:100%; height:100%;}
+  .tier-badge{
+    position:absolute; top:2px; right:3px;
+    font-family:'DM Mono',monospace; font-weight:600; font-size:8.5px;
+    padding:1px 5px; border-radius:5px; pointer-events:none;
+    border:1px solid transparent; background:#00000070; color:#dfe6f7;
+  }
+  .tier-badge.tier-1{
+    background:linear-gradient(135deg,#173a24,#2f8a4a);
+    color:#dcffe6; border-color:#6be08a99; box-shadow:0 0 5px #6be08a55;
+  }
+  .tier-badge.tier-2{
+    background:linear-gradient(135deg,#0d3646,#2a8fb0);
+    color:#e2faff; border-color:#5fc9ff99; box-shadow:0 0 6px #5fc9ff66;
+  }
+  .tier-badge.tier-3{
+    background:linear-gradient(135deg,#391f5c,#8a4fd9);
+    color:#f4e9ff; border-color:#d38dffaa; box-shadow:0 0 7px #d38dff77;
+  }
+  .tier-badge.tier-4{
+    background:linear-gradient(120deg,#8a6a1a,#ffe9a8,#fff8e4,#ffd76a,#a8792f);
+    background-size:280% 280%;
+    color:#3a2705; font-weight:800; border-color:#fff4cf;
+    box-shadow:0 0 9px 2px #ffd76acc, inset 0 0 3px #ffffffcc;
+    animation:badgeShimmer 2.2s ease-in-out infinite;
+  }
+  @keyframes badgeShimmer{
+    0%,100%{ background-position:0% 50%; }
+    50%{ background-position:100% 50%; }
+  }
+  .hpbar{ position:absolute; bottom:3px; left:8%; width:84%; height:4px; background:#00000060; border-radius:3px; overflow:hidden; pointer-events:none; }
+  .hpbar .hpfill{height:100%; transition:width .2s ease;}
+  .debris-flash{animation:debrisFlash .35s ease;}
+  @keyframes debrisFlash{ 0%{background:rgba(255,90,70,.55);} 100%{background:#ffffff0d;} }
+  .merge-pop{animation:mergePop .48s cubic-bezier(.34,1.56,.64,1);}
+  @keyframes mergePop{
+    0%{transform:scale(1);}
+    30%{transform:scale(.85,1.15);}
+    55%{transform:scale(1.25,.85); box-shadow:0 0 22px 8px #ffd76acc;}
+    75%{transform:scale(.95,1.05);}
+    100%{transform:scale(1); box-shadow:none;}
+  }
+
+  .merge-fly{ position:absolute; transform:translate(-50%,-50%); pointer-events:none; z-index:8; }
+  .merge-fly svg{display:block; width:100%; height:100%;}
+
+  .merge-particle{
+    position:absolute; width:6px; height:6px; border-radius:50%;
+    transform:translate(-50%,-50%);
+    pointer-events:none; z-index:8;
+    box-shadow:0 0 6px currentColor;
+    animation:particleFly .5s cubic-bezier(.2,.8,.3,1) forwards;
+  }
+  @keyframes particleFly{
+    0%{ transform:translate(-50%,-50%) translate(0,0) scale(1); opacity:1; }
+    100%{ transform:translate(-50%,-50%) translate(var(--dx),var(--dy)) scale(.2); opacity:0; }
+  }
+  .merge-ring{
+    position:absolute; border-radius:50%; border:3px solid #fff;
+    transform:translate(-50%,-50%) scale(.3);
+    pointer-events:none; z-index:7;
+    animation:mergeRingExpand .5s ease-out forwards;
+  }
+  @keyframes mergeRingExpand{
+    0%{ transform:translate(-50%,-50%) scale(.2); opacity:1; }
+    100%{ transform:translate(-50%,-50%) scale(1.4); opacity:0; }
+  }
+  .merge-flash{
+    position:absolute; border-radius:10px; background:#ffffff;
+    transform:translate(-50%,-50%);
+    pointer-events:none; z-index:9;
+    animation:mergeFlashPop .26s ease-out forwards;
+  }
+  @keyframes mergeFlashPop{ 0%{opacity:.9;} 100%{opacity:0;} }
+
+  .merge-text{
+    position:absolute; transform:translate(-50%,-50%) scale(.4);
+    font-family:'Baloo 2',sans-serif; font-weight:800; font-size:13px;
+    text-shadow:0 2px 4px rgba(0,0,0,.6), 0 0 10px currentColor;
+    pointer-events:none; z-index:10; white-space:nowrap;
+    animation:mergeTextPop .85s cubic-bezier(.34,1.6,.5,1) forwards;
+  }
+  @keyframes mergeTextPop{
+    0%{ opacity:0; transform:translate(-50%,-50%) scale(.4) translateY(0); }
+    15%{ opacity:1; transform:translate(-50%,-50%) scale(1.2) translateY(-4px); }
+    30%{ transform:translate(-50%,-50%) scale(1) translateY(-4px); }
+    80%{ opacity:1; transform:translate(-50%,-50%) scale(1) translateY(-22px); }
+    100%{ opacity:0; transform:translate(-50%,-50%) scale(.9) translateY(-30px); }
+  }
+
+  .celebrate-flash{
+    position:fixed; inset:0; z-index:85; pointer-events:none;
+    opacity:0; animation:celebrateFlash .55s ease-out forwards;
+  }
+  @keyframes celebrateFlash{ 0%{opacity:.85;} 100%{opacity:0;} }
+  .field.field-shake{ animation:fieldShake .4s ease; }
+  @keyframes fieldShake{
+    0%,100%{transform:translate(0,0);}
+    20%{transform:translate(-5px,3px);}
+    40%{transform:translate(5px,-3px);}
+    60%{transform:translate(-4px,-2px);}
+    80%{transform:translate(4px,2px);}
+  }
+
+  .drag-ghost{
+    position:fixed; z-index:300; pointer-events:none;
+    transform:translate(-50%,-50%) scale(1.18);
+    filter:drop-shadow(0 8px 12px rgba(0,0,0,.55));
+  }
+  .drag-ghost svg{display:block; width:100%; height:100%;}
+
+  .enemy{ position:absolute; transform:translate(-50%,-50%); z-index:5; pointer-events:none; }
+  .enemy svg{display:block; width:100%; height:100%;}
+  .enemy .ehp{ position:absolute; top:-7px; left:10%; width:80%; height:3px; background:#00000070; border-radius:2px; overflow:hidden; }
+  .enemy .ehp .ehpfill{height:100%; background:var(--danger); transition:width .2s ease;}
+  .enemy .eshield{ position:absolute; top:-12px; left:10%; width:80%; height:3px; background:#00000070; border-radius:2px; overflow:hidden; transition:opacity .3s ease; }
+  .enemy .eshield .eshieldfill{height:100%; background:#5fc9ff; transition:width .2s ease;}
+  .enemy .shield-ring{transition:opacity .3s ease;}
+  .enemy.shield-down .shield-ring{opacity:0;}
+  .enemy.shield-down .eshield{opacity:0;}
+  .enemy.hit{animation:hitFlash .22s ease;}
+  .enemy.shield-hit{animation:shieldHitFlash .2s ease;}
+  .enemy.die{animation:dieFade .26s ease forwards;}
+  .enemy.breach{animation:breachFade .26s ease forwards;}
+  @keyframes hitFlash{0%{filter:brightness(2.4);}100%{filter:brightness(1);}}
+  @keyframes shieldHitFlash{0%{filter:drop-shadow(0 0 6px #5fc9ff) brightness(1.6);}100%{filter:none;}}
+  @keyframes dieFade{0%{opacity:1; transform:translate(-50%,-50%) scale(1);}100%{opacity:0; transform:translate(-50%,-50%) scale(1.7);}}
+  @keyframes breachFade{0%{opacity:1;}100%{opacity:0; transform:translate(-50%,-50%) translateY(16px);}}
+  .shield-break{
+    position:absolute; border-radius:50%;
+    background:radial-gradient(circle, rgba(95,201,255,.6), rgba(95,201,255,0) 70%);
+    transform:translate(-50%,-50%); pointer-events:none; z-index:4;
+    animation:blastExpand .4s ease-out forwards;
+  }
+
+  .heal-pulse{
+    position:absolute; transform:translate(-50%,-50%);
+    color:#8effa0; font-family:'DM Mono',monospace; font-weight:700; font-size:12px;
+    text-shadow:0 0 6px #2f8a4a; pointer-events:none; z-index:7;
+    animation:healFloat .7s ease-out forwards;
+  }
+  @keyframes healFloat{
+    0%{opacity:1; transform:translate(-50%,-50%) translateY(0);}
+    100%{opacity:0; transform:translate(-50%,-90%) translateY(-14px);}
+  }
+
+  .boss{ position:absolute; z-index:5; pointer-events:none; }
+  .boss-body{width:100%; height:100%;}
+  .boss-body svg{display:block; width:100%; height:100%;}
+  .boss-hp{ position:absolute; top:-10px; left:4%; width:92%; height:6px; background:#00000080; border-radius:3px; overflow:hidden; }
+  .boss-hpfill{height:100%; background:linear-gradient(90deg,#ff5c5c,#ffab5f); transition:width .2s ease;}
+  .boss.die{animation:bossDie .32s ease forwards;}
+  .boss.hit{animation:hitFlash .18s ease;}
+  @keyframes bossDie{0%{opacity:1; transform:scale(1);} 100%{opacity:0; transform:scale(1.4);}}
+
+  .bullet{ position:absolute; width:6px; height:15px; border-radius:3px; transform:translate(-50%,-50%); pointer-events:none; z-index:6; }
+  .bullet-speed{background:#8ff2f6; box-shadow:0 0 6px #8ff2f6;}
+  .bullet-power{background:#ffb56b; width:8px; height:12px; box-shadow:0 0 7px #ffb56b;}
+  .bullet-defense{background:#9dbcff; width:7px; height:7px; border-radius:50%; box-shadow:0 0 6px #9dbcff;}
+  .bullet-area{background:#e2a9ff; width:10px; height:10px; border-radius:50%; box-shadow:0 0 8px #e2a9ff;}
+
+  .blast{
+    position:absolute; border-radius:50%;
+    background:radial-gradient(circle, rgba(196,121,242,.55), rgba(196,121,242,0) 70%);
+    transform:translate(-50%,-50%); pointer-events:none; z-index:4;
+    animation:blastExpand .4s ease-out forwards;
+  }
+  @keyframes blastExpand{ 0%{opacity:.9; transform:translate(-50%,-50%) scale(.3);} 100%{opacity:0; transform:translate(-50%,-50%) scale(1);} }
+
+  .damage-flash{
+    position:fixed; inset:0; z-index:80; pointer-events:none;
+    background:radial-gradient(circle, rgba(255,60,60,.28), rgba(255,60,60,0) 70%);
+    opacity:0; transition:opacity .3s ease;
+  }
+  .damage-flash.show{opacity:1; transition:opacity .04s;}
+
+  .controls{ width:100%; display:flex; align-items:center; justify-content:center; gap:12px; }
+  .spawn-btn{
+    font-family:'Baloo 2', sans-serif; font-weight:700; font-size:18px; color:#2a1e05;
+    background:linear-gradient(180deg, #ffe7a6, var(--gold)); border:none; border-radius:999px;
+    padding:13px 30px; cursor:pointer;
+    box-shadow:0 7px 0 var(--gold-dark), 0 11px 16px rgba(0,0,0,.32);
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .spawn-btn:hover:not(:disabled){transform:translateY(-1px);}
+  .spawn-btn:active:not(:disabled){transform:translateY(5px); box-shadow:0 2px 0 var(--gold-dark), 0 5px 8px rgba(0,0,0,.3);}
+  .spawn-btn:disabled{opacity:.45; cursor:default; transform:none;}
+  .spawn-btn .cost{font-family:'DM Mono',monospace; font-size:12px; opacity:.75; display:block; margin-top:1px;}
+
+  .message{ min-height:18px; font-size:13px; text-align:center; color:var(--cream); font-weight:500; }
+
+  .selected-panel{
+    display:none; width:100%; align-items:center; gap:10px;
+    background:var(--panel); border:1px solid #ffffff22; border-radius:12px; padding:8px 12px;
+  }
+  .selected-panel .sp-icon{width:38px; height:38px; flex:none;}
+  .selected-panel .sp-icon svg{display:block; width:100%; height:100%;}
+  .sp-name{font-family:'Baloo 2', sans-serif; font-weight:700; font-size:14px;}
+  .sp-stats{font-family:'DM Mono',monospace; font-size:10.5px; color:#c9d2ea; margin-top:1px;}
+
+  .legend{ width:100%; display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .legend .card{ background:var(--panel); border:1px solid #ffffff1c; border-radius:12px; padding:8px; display:flex; gap:8px; align-items:center; }
+  .legend .card.locked{ opacity:.5; }
+  .legend .card:nth-child(5){ grid-column:1/-1; }
+  .legend .card .ic{width:32px; height:32px; flex:none;}
+  .legend .card .ic svg{display:block; width:100%; height:100%;}
+  .legend .card .name{font-family:'Baloo 2', sans-serif; font-weight:700; font-size:12.5px;}
+  .legend .card .desc{font-size:10px; color:#b6c0dd; line-height:1.25; margin-top:1px;}
+
+  footer{ font-family:'DM Mono', monospace; font-size:10.5px; color:#98a3c4; text-align:center; }
+
+  .overlay{
+    position:fixed; inset:0; background:rgba(6,10,22,.78);
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity .3s ease; z-index:90;
+  }
+  .overlay.show{opacity:1; pointer-events:auto;}
+  .overlay-card{
+    background:var(--cream); color:#1c2338; border-radius:18px; padding:30px 32px;
+    text-align:center; max-width:340px; box-shadow:0 20px 50px rgba(0,0,0,.4);
+    transform:translateY(14px) scale(.96); transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+  }
+  .overlay.show .overlay-card{transform:translateY(0) scale(1);}
+  .overlay-card h2{font-family:'Baloo 2', sans-serif; font-size:24px; margin:0 0 6px;}
+  .overlay-card p{margin:0 0 20px; font-size:13.5px; color:#3d4666;}
+  .overlay-card button{
+    font-family:'Baloo 2', sans-serif; font-weight:700; font-size:16px; color:#fff;
+    background:#3f5cd6; border:none; border-radius:999px; padding:11px 28px; cursor:pointer;
+    box-shadow:0 5px 0 #2d41a0;
+  }
+  .overlay-card button:active{transform:translateY(3px); box-shadow:0 2px 0 #2d41a0;}
+</style>
+</head>
+<body>
+
+<div class="space-bg" aria-hidden="true">
+  <div class="stars layer1"></div>
+  <div class="stars layer2"></div>
+  <div class="stars layer3"></div>
+  <div class="planet planet-a"></div>
+  <div class="planet planet-b"></div>
+  <div class="planet planet-c"></div>
+</div>
+
+<button class="sound-toggle" id="soundToggle" aria-label="Toggle sound">🔊</button>
+
+<div class="wrap screen active" id="hangarScreen">
+  <div class="masthead">
+    <p class="eyebrow">Home base</p>
+    <h1>Hangar</h1>
+    <p class="sub" id="hangarSub">Spend Salvage earned from runs on permanent upgrades, then launch your fleet.</p>
+  </div>
+
+  <div class="hangar-stats">
+    <div class="stat"><span class="lbl">Salvage</span><span class="val" id="hgSalvage">0</span></div>
+    <div class="stat"><span class="lbl">Best Wave</span><span class="val" id="hgBestWave">0</span></div>
+    <div class="stat"><span class="lbl">Lifetime Kills</span><span class="val" id="hgLifetimeKills">0</span></div>
+  </div>
+
+  <div class="section-label">Fleet Upgrades</div>
+  <div class="upgrade-list" id="upgradeList"></div>
+
+  <div class="section-label">Fleet Unlocks</div>
+  <div class="unlock-list" id="unlockList"></div>
+
+  <button class="spawn-btn" id="launchBtn">Launch Run</button>
+</div>
+
+<div class="wrap screen" id="gameScreen">
+  <div class="masthead">
+    <p class="eyebrow">4×5 fleet zone · drag to merge</p>
+    <h1>Merge Armada</h1>
+    <p class="sub">Drag a tower onto a matching tower to merge it, or drop it on any open cell to move it. Push through five waves, then face the sector boss — clear it and the loop repeats, tougher each time.</p>
+  </div>
+
+  <div class="map-strip">
+    <div class="map-loop-label" id="mapLoopLabel">Loop 1</div>
+    <div class="map-nodes" id="mapNodes"></div>
+  </div>
+
+  <div class="level-label" id="levelLabel">Wave 1 · Recon Skirmish</div>
+
+  <div class="hud">
+    <div class="stat">
+      <span class="lbl">Wave</span>
+      <span class="val" id="hudLevel">1 / 5</span>
+    </div>
+    <div class="stat">
+      <span class="lbl">Energy</span>
+      <span class="val" id="hudEnergy">40</span>
+      <div class="bar"><div class="fill energy" id="hudEnergyBar" style="width:40%"></div></div>
+    </div>
+    <div class="stat">
+      <span class="lbl">Base</span>
+      <span class="val" id="hudBase">100 / 100</span>
+      <div class="bar"><div class="fill base" id="hudBaseBar" style="width:100%"></div></div>
+    </div>
+    <div class="stat">
+      <span class="lbl">Kills</span>
+      <span class="val" id="hudKills">0 / 12</span>
+      <div class="bar"><div class="fill kills" id="hudKillsBar" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <div class="field" id="field"></div>
+
+  <div class="controls">
+    <button class="spawn-btn" id="spawnBtn">Spawn<span class="cost" id="spawnCostLabel">14 energy</span></button>
+  </div>
+  <div class="message" id="message">Tap Spawn to build your first ships.</div>
+
+  <div class="selected-panel" id="selectedPanel">
+    <div class="sp-icon" id="spIcon"></div>
+    <div>
+      <div class="sp-name" id="spName"></div>
+      <div class="sp-stats" id="spStats"></div>
+    </div>
+  </div>
+
+  <div class="legend" id="legend"></div>
+
+  <footer>Pick up a tower and its merge matches glow. Drop it on one of those to merge, or on any open cell to move it.</footer>
+</div>
+
+<div class="damage-flash" id="damageFlash"></div>
+
+<div class="overlay" id="overlay">
+  <div class="overlay-card">
+    <h2 id="overlayTitle">Wave Cleared!</h2>
+    <p id="overlayText">Nice work.</p>
+    <button id="overlayBtn">Next Wave</button>
+  </div>
+</div>
+
+<script>
+// ---------- Field geometry ----------
+const SKY_ROWS=6, PLAYER_ROWS=4, ROWS=SKY_ROWS+PLAYER_ROWS, COLS=5;
+const DEPLOY_ROWS=[6,7,8,9];
+const PAD=14, GAP=5;
+let TILE=54;
+
+function cellTopLeft(r,c){ return { x: PAD + c*(TILE+GAP), y: PAD + r*(TILE+GAP) }; }
+function cellCenter(r,c){ return { x: PAD + c*(TILE+GAP) + TILE/2, y: PAD + r*(TILE+GAP) + TILE/2 }; }
+function parseKey(key){ const parts=key.split('_'); return [Number(parts[0]), Number(parts[1])]; }
+function adjacentCells(r,c){
+  return [[r-1,c],[r+1,c],[r,c-1],[r,c+1]].filter(([rr,cc])=>DEPLOY_ROWS.includes(rr) && cc>=0 && cc<COLS);
+}
+
+// ---------- Ship data ----------
+// Combat types now carry a 5th ("Overdrive") tier — reachable only once the
+// Overdrive Tier unlock is bought in the Hangar (see maxTierFor()).
+const SHIP_TYPES={
+  speed:{
+    name:'Scout', label:'Speed', color:'#5fe0e6', colorDark:'#217b82',
+    tiers:[
+      {name:'Scout', dmg:4, fireRate:380, hp:22},
+      {name:'Falcon', dmg:9, fireRate:320, hp:50},
+      {name:'Comet', dmg:20, fireRate:260, hp:110},
+      {name:'Starstreak', dmg:44, fireRate:190, hp:230},
+      {name:'Nova', dmg:97, fireRate:150, hp:500},
+    ]
+  },
+  power:{
+    name:'Gunship', label:'Power', color:'#ffab5f', colorDark:'#b5501f',
+    tiers:[
+      {name:'Gunship', dmg:15, fireRate:950, hp:38},
+      {name:'Dreadnought', dmg:34, fireRate:880, hp:85},
+      {name:'Juggernaut', dmg:74, fireRate:820, hp:190},
+      {name:'Warlord', dmg:155, fireRate:740, hp:410},
+      {name:'Overlord', dmg:340, fireRate:660, hp:880},
+    ]
+  },
+  defense:{
+    name:'Aegis', label:'Defense', color:'#7ea3ff', colorDark:'#2e4f9e',
+    tiers:[
+      {name:'Aegis', dmg:5, fireRate:760, hp:65, reduction:0.20},
+      {name:'Bastion', dmg:11, fireRate:700, hp:150, reduction:0.30},
+      {name:'Citadel', dmg:23, fireRate:640, hp:330, reduction:0.42},
+      {name:'Fortress', dmg:47, fireRate:580, hp:720, reduction:0.55},
+      {name:'Bulwark', dmg:100, fireRate:520, hp:1550, reduction:0.65},
+    ]
+  },
+  area:{
+    name:'Mortar', label:'Area', color:'#d38dff', colorDark:'#7c3fa0',
+    tiers:[
+      {name:'Mortar', dmg:8, fireRate:1150, hp:32, splash:1},
+      {name:'Howitzer', dmg:17, fireRate:1050, hp:70, splash:1},
+      {name:'Barrage', dmg:34, fireRate:950, hp:150, splash:2},
+      {name:'Devastator', dmg:68, fireRate:850, hp:320, splash:2},
+      {name:'Cataclysm', dmg:145, fireRate:760, hp:680, splash:3},
+    ]
+  },
+  // Support Wing (unlocked in the Hangar): never fires. Instead heals adjacent
+  // towers and gives them a passive fire-rate boost. Only 4 tiers — no
+  // Overdrive rank for this one.
+  support:{
+    name:'Relay', label:'Support', color:'#8effa0', colorDark:'#2f8a4a',
+    tiers:[
+      {name:'Relay', healAmount:6, healInterval:1400, fireBoost:0.08, hp:30},
+      {name:'Repeater', healAmount:13, healInterval:1300, fireBoost:0.14, hp:65},
+      {name:'Uplink', healAmount:26, healInterval:1200, fireBoost:0.20, hp:140},
+      {name:'Nexus', healAmount:52, healInterval:1050, fireBoost:0.28, hp:300},
+    ]
+  }
+};
+const TYPE_DESC={
+  speed:'Fires fastest of all — great sustained damage early on.',
+  power:'Slow but devastating single shots — the only type that punches straight through enemy shields.',
+  defense:'Huge HP pool and shields every ship sharing its column.',
+  area:'Blast damage that hits every enemy in the same row band.',
+  support:"Doesn't attack — heals and speeds up towers in adjacent cells instead."
+};
+
+// Wave enemy counts ramp with accelerating deltas (5,6,7,8) rather than a flat
+// step, so the climb from wave to wave feels like it's building momentum.
+const LEVELS=[
+  {count:10, label:'Wave 1 · Recon Skirmish'},
+  {count:15, label:'Wave 2 · Escalation'},
+  {count:21, label:'Wave 3 · Heavy Assault'},
+  {count:28, label:'Wave 4 · Swarm Protocol'},
+  {count:36, label:'Wave 5 · Final Armada'},
+];
+
+const MAP_NODES=[
+  {icon:'🪨', name:'Asteroid Belt', color:'#8d7a63'},
+  {icon:'❄️', name:'Ice Nebula', color:'#5f9dc4'},
+  {icon:'☄️', name:'Solar Flare', color:'#d67a45'},
+  {icon:'🌫️', name:'Debris Field', color:'#7d7d9c'},
+  {icon:'🌀', name:'Wormhole Rift', color:'#8a5cc9'},
+  {icon:'💀', name:'Sector Boss', color:'#c93a4e'},
+];
+
+const BASE_SPAWN_COST=14, BASE_START_ENERGY=40, BASE_ENERGY_REGEN=1, BASE_MAX_HP=100;
+const KILL_REWARD=4, MELEE_INTERVAL=550, BOSS_MELEE_INTERVAL=1300;
+let EFFECTIVE_SPAWN_COST=BASE_SPAWN_COST;
+let EFFECTIVE_START_ENERGY=BASE_START_ENERGY;
+let EFFECTIVE_ENERGY_REGEN=BASE_ENERGY_REGEN;
+let EFFECTIVE_BASE_MAX_HP=BASE_MAX_HP;
+
+// Loop difficulty curve: gentle for the first couple of loops, then
+// accelerates — rewards early wins without punishing new players, while
+// still giving veterans an escalating long-term challenge.
+function loopMultiplier(loop){
+  return 1 + loop*0.28 + loop*loop*0.02;
+}
+
+// ---------- Persistent save (Hangar) ----------
+const SAVE_KEY='mergeArmada_save_v1';
+function defaultSave(){
+  return {
+    salvage:0,
+    upgrades:{ startEnergy:0, energyRegen:0, spawnCost:0, baseHP:0 },
+    unlocks:{ supportWing:false, overdriveTier5:false },
+    bestWave:0,
+    lifetimeKills:0,
+    soundOn:true
+  };
+}
+function loadSave(){
+  try{
+    const raw=localStorage.getItem(SAVE_KEY);
+    if(!raw) return defaultSave();
+    const parsed=JSON.parse(raw);
+    const d=defaultSave();
+    return {
+      ...d, ...parsed,
+      upgrades:{ ...d.upgrades, ...(parsed.upgrades||{}) },
+      unlocks:{ ...d.unlocks, ...(parsed.unlocks||{}) }
+    };
+  }catch(e){
+    return defaultSave();
+  }
+}
+function persistSave(){
+  try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }
+  catch(e){ /* storage unavailable (private mode / sandboxed) — play on without saving */ }
+}
+let save=loadSave();
+
+// Max reachable merge tier for a given type: combat types (speed/power/
+// defense/area) cap at T4 until Overdrive Tier is unlocked, then T5. Support
+// always has its own fixed 4-tier range.
+function maxTierFor(type){
+  if(type!=='support' && save.unlocks.overdriveTier5) return SHIP_TYPES[type].tiers.length-1;
+  return Math.min(SHIP_TYPES[type].tiers.length-1, 3);
+}
+
+// ---------- Sound (Web Audio, synthesized — no bundled assets) ----------
+let audioCtx=null;
+function ensureAudio(){
+  if(!audioCtx){
+    try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return null; }
+  }
+  if(audioCtx && audioCtx.state==='suspended'){ audioCtx.resume(); }
+  return audioCtx;
+}
+function unlockAudioOnce(){ ensureAudio(); }
+document.addEventListener('pointerdown', unlockAudioOnce, {once:true});
+
+function playTone(freq, opts){
+  if(!save.soundOn) return;
+  const o=opts||{};
+  const duration=o.duration!==undefined?o.duration:0.12;
+  const type=o.type||'sine';
+  const gain=o.gain!==undefined?o.gain:0.15;
+  const freqEnd=o.freqEnd||null;
+  const delay=o.delay||0;
+  const ctx=ensureAudio();
+  if(!ctx) return;
+  const t0=ctx.currentTime+delay;
+  const osc=ctx.createOscillator();
+  const g=ctx.createGain();
+  osc.type=type;
+  osc.frequency.setValueAtTime(freq, t0);
+  if(freqEnd) osc.frequency.exponentialRampToValueAtTime(Math.max(freqEnd,1), t0+duration);
+  g.gain.setValueAtTime(0, t0);
+  g.gain.linearRampToValueAtTime(gain, t0+0.01);
+  g.gain.exponentialRampToValueAtTime(0.001, t0+duration);
+  osc.connect(g).connect(ctx.destination);
+  osc.start(t0);
+  osc.stop(t0+duration+0.02);
+}
+function playNoise(opts){
+  if(!save.soundOn) return;
+  const o=opts||{};
+  const duration=o.duration!==undefined?o.duration:0.15;
+  const gain=o.gain!==undefined?o.gain:0.2;
+  const delay=o.delay||0;
+  const ctx=ensureAudio();
+  if(!ctx) return;
+  const t0=ctx.currentTime+delay;
+  const bufferSize=Math.max(1, Math.floor(ctx.sampleRate*duration));
+  const buffer=ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  const data=buffer.getChannelData(0);
+  for(let i=0;i<bufferSize;i++) data[i]=(Math.random()*2-1)*(1-i/bufferSize);
+  const src=ctx.createBufferSource();
+  src.buffer=buffer;
+  const g=ctx.createGain();
+  g.gain.setValueAtTime(gain, t0);
+  g.gain.exponentialRampToValueAtTime(0.001, t0+duration);
+  src.connect(g).connect(ctx.destination);
+  src.start(t0);
+}
+const _lastPlayed={};
+function throttled(key, minGapMs, fn){
+  const now=performance.now();
+  if(_lastPlayed[key] && now-_lastPlayed[key]<minGapMs) return;
+  _lastPlayed[key]=now;
+  fn();
+}
+const SFX={
+  spawn: ()=> playTone(520, {duration:0.1, type:'triangle', gain:0.12, freqEnd:780}),
+  merge: (tier)=>{
+    const base=440+tier*90;
+    playTone(90, {duration:.12, type:'sine', gain:.1, freqEnd:40});
+    playTone(base, {duration:.16, type:'sine', gain:.16, freqEnd:base*1.7});
+    playTone(base*1.5, {duration:.2, type:'sine', gain:.12, freqEnd:base*2.3, delay:.04});
+    playTone(base*2, {duration:.22, type:'triangle', gain:.08, freqEnd:base*2.8, delay:.09});
+    if(tier>=4){
+      playTone(base*3, {duration:.3, type:'sine', gain:.07, freqEnd:base*4, delay:.15});
+      playTone(base*4, {duration:.35, type:'sine', gain:.05, freqEnd:base*5, delay:.22});
+    }
+  },
+  hit: ()=> throttled('hit', 55, ()=>playTone(220, {duration:.05, type:'square', gain:.05, freqEnd:120})),
+  shieldHit: ()=> throttled('shieldhit', 55, ()=>playTone(700, {duration:.06, type:'sine', gain:.06, freqEnd:900})),
+  shieldBreak: ()=> playTone(900, {duration:.15, type:'sawtooth', gain:.12, freqEnd:200}),
+  kill: ()=> throttled('kill', 50, ()=>playNoise({duration:.12, gain:.14})),
+  bossHit: ()=> throttled('bosshit', 50, ()=>playTone(180, {duration:.06, type:'square', gain:.07, freqEnd:100})),
+  shipDestroyed: ()=> playTone(160, {duration:.25, type:'sawtooth', gain:.15, freqEnd:60}),
+  baseDamage: ()=> throttled('basedmg', 200, ()=>playTone(140, {duration:.2, type:'square', gain:.14, freqEnd:80})),
+  heal: ()=> throttled('heal', 300, ()=>playTone(700, {duration:.12, type:'sine', gain:.08, freqEnd:900})),
+  waveComplete: ()=>{
+    playTone(523, {duration:.15, gain:.15});
+    playTone(659, {duration:.15, gain:.15, delay:.12});
+    playTone(784, {duration:.25, gain:.15, delay:.24});
+  },
+  bossSpawn: ()=> playTone(110, {duration:.5, type:'sawtooth', gain:.18, freqEnd:80}),
+  bossDefeat: ()=>{
+    playTone(392, {duration:.2, gain:.16});
+    playTone(523, {duration:.2, gain:.16, delay:.15});
+    playTone(659, {duration:.2, gain:.16, delay:.3});
+    playTone(784, {duration:.4, gain:.18, delay:.45});
+  },
+  gameOver: ()=>{
+    playTone(300, {duration:.3, type:'sawtooth', gain:.15, freqEnd:100});
+    playTone(200, {duration:.4, type:'sawtooth', gain:.15, freqEnd:60, delay:.2});
+  },
+  click: ()=> playTone(600, {duration:.05, type:'square', gain:.06}),
+  upgrade: ()=>{
+    playTone(660, {duration:.1, gain:.14, freqEnd:990});
+    playTone(880, {duration:.15, gain:.1, freqEnd:1320, delay:.08});
+  },
+  invalid: ()=> playTone(150, {duration:.12, type:'square', gain:.08}),
+};
+
+const soundToggleBtn=document.getElementById('soundToggle');
+function updateSoundToggleUI(){ soundToggleBtn.textContent = save.soundOn ? '🔊' : '🔇'; }
+soundToggleBtn.addEventListener('click', ()=>{
+  save.soundOn=!save.soundOn;
+  persistSave();
+  updateSoundToggleUI();
+});
+
+const UPGRADE_DEFS={
+  startEnergy:{ name:'Reactor Core', desc:'Starting energy each run', maxRank:5, rank1Cost:40, perRank:5, format:v=>`+${v} start energy` },
+  energyRegen:{ name:'Solar Array', desc:'Passive energy regen', maxRank:5, rank1Cost:60, perRank:0.15, format:v=>`+${v.toFixed(2)}/s regen` },
+  spawnCost:{ name:'Fab Efficiency', desc:'Spawn cost per tower (min 8)', maxRank:4, rank1Cost:80, perRank:-1, format:v=>`${Math.max(8, BASE_SPAWN_COST+v)} energy/spawn` },
+  baseHP:{ name:'Hull Plating', desc:'Base max HP', maxRank:5, rank1Cost:60, perRank:15, format:v=>`+${v} base HP` },
+};
+const UNLOCK_DEFS={
+  supportWing:{ name:'Support Wing', desc:'Unlocks the Relay support tower — heals & speeds up adjacent towers instead of attacking.', cost:300 },
+  overdriveTier5:{ name:'Overdrive Tier', desc:'Unlocks a 5th merge rank for all four combat tower types.', cost:500 },
+};
+function upgradeCost(def, rank){ return Math.round(def.rank1Cost * Math.pow(1.6, rank) / 10) * 10; }
+function recomputeEffectiveStats(){
+  const u=save.upgrades;
+  EFFECTIVE_START_ENERGY = BASE_START_ENERGY + (u.startEnergy||0)*UPGRADE_DEFS.startEnergy.perRank;
+  EFFECTIVE_ENERGY_REGEN = BASE_ENERGY_REGEN + (u.energyRegen||0)*UPGRADE_DEFS.energyRegen.perRank;
+  EFFECTIVE_SPAWN_COST = Math.max(8, BASE_SPAWN_COST + (u.spawnCost||0)*UPGRADE_DEFS.spawnCost.perRank);
+  EFFECTIVE_BASE_MAX_HP = BASE_MAX_HP + (u.baseHP||0)*UPGRADE_DEFS.baseHP.perRank;
+  const lbl=document.getElementById('spawnCostLabel');
+  if(lbl) lbl.textContent = EFFECTIVE_SPAWN_COST+' energy';
+}
+function buyUpgrade(key){
+  const def=UPGRADE_DEFS[key];
+  const rank=save.upgrades[key]||0;
+  if(rank>=def.maxRank) return;
+  const cost=upgradeCost(def, rank);
+  if(save.salvage<cost) return;
+  save.salvage-=cost;
+  save.upgrades[key]=rank+1;
+  persistSave();
+  recomputeEffectiveStats();
+  renderHangar();
+  SFX.upgrade();
+}
+function buyUnlock(key){
+  const def=UNLOCK_DEFS[key];
+  if(save.unlocks[key]) return;
+  if(save.salvage<def.cost) return;
+  save.salvage-=def.cost;
+  save.unlocks[key]=true;
+  persistSave();
+  renderHangar();
+  buildLegend();
+  SFX.upgrade();
+}
+function renderHangar(){
+  hgSalvageEl.textContent=save.salvage;
+  hgBestWaveEl.textContent=save.bestWave;
+  hgLifetimeKillsEl.textContent=save.lifetimeKills;
+  upgradeListEl.innerHTML='';
+  for(const key of Object.keys(UPGRADE_DEFS)){
+    const def=UPGRADE_DEFS[key];
+    const rank=save.upgrades[key]||0;
+    const maxed=rank>=def.maxRank;
+    const cost=maxed?null:upgradeCost(def, rank);
+    const nowLabel=def.format(def.perRank*rank);
+    const nextLabel=maxed?null:def.format(def.perRank*(rank+1));
+    const card=document.createElement('div');
+    card.className='upgrade-card';
+    const disabled = maxed || save.salvage<cost;
+    card.innerHTML=`
+      <div class="uc-head">
+        <div class="uc-name">${def.name}</div>
+        <div class="uc-rank">Rank ${rank}/${def.maxRank}</div>
+      </div>
+      <div class="uc-desc">${def.desc}</div>
+      <div class="uc-effect">${nowLabel}${maxed?'':' → '+nextLabel}</div>
+      <button class="uc-buy" data-key="${key}" ${disabled?'disabled':''}>${maxed?'MAX':'Upgrade · '+cost}</button>
+    `;
+    upgradeListEl.appendChild(card);
+  }
+  upgradeListEl.querySelectorAll('.uc-buy').forEach(btn=>{
+    btn.addEventListener('click', ()=>buyUpgrade(btn.dataset.key));
+  });
+
+  unlockListEl.innerHTML='';
+  for(const key of Object.keys(UNLOCK_DEFS)){
+    const def=UNLOCK_DEFS[key];
+    const owned=save.unlocks[key];
+    const card=document.createElement('div');
+    card.className='unlock-card'+(owned?' owned':'');
+    const disabled = owned || save.salvage<def.cost;
+    card.innerHTML=`
+      <div class="uc-head">
+        <div class="uc-name">${def.name}</div>
+        <div class="uc-rank">${owned?'OWNED':''}</div>
+      </div>
+      <div class="uc-desc">${def.desc}</div>
+      <button class="uc-buy" data-unlock="${key}" ${disabled?'disabled':''}>${owned?'Unlocked':'Unlock · '+def.cost}</button>
+    `;
+    unlockListEl.appendChild(card);
+  }
+  unlockListEl.querySelectorAll('.uc-buy').forEach(btn=>{
+    btn.addEventListener('click', ()=>buyUnlock(btn.dataset.unlock));
+  });
+}
+function updateHangarCopy(){
+  const subEl=document.getElementById('hangarSub');
+  if(runPausedMidLoop){
+    subEl.textContent='Your fleet is holding position mid-run. Spend Salvage, then resume the push.';
+    launchBtn.textContent='Resume Run';
+  } else {
+    subEl.textContent='Spend Salvage earned from runs on permanent upgrades, then launch your fleet.';
+    launchBtn.textContent='Launch Run';
+  }
+}
+
+// ---------- State ----------
+let shipGrid={};          // key "r_c" -> ship
+let deployDivs={};        // key "r_c" -> div
+let enemies=[];
+let enemyIdSeq=1;
+let energy=EFFECTIVE_START_ENERGY;
+let baseHP=EFFECTIVE_BASE_MAX_HP;
+let currentLevelIdx=0;
+let currentLevelData=LEVELS[0];
+let enemiesSpawnedThisLevel=0;
+let killCountThisLevel=0;
+let totalKills=0;
+let wavesClearedThisRun=0;
+let loopCount=0;
+let boss=null;
+let inBossFight=false;
+let currentSpawnInterval=1900;
+let lastSpawnAt=0;
+let lastEnergyTick=0;
+let gameActive=false;
+let overlayMode=null;
+let dragState=null;
+let highlightedKey=null;
+let pendingMergeTargets=new Set(); // cell keys currently mid-merge (fly-in animation in flight)
+let runPausedMidLoop=false;
+
+// ---------- DOM refs ----------
+const hangarScreenEl=document.getElementById('hangarScreen');
+const gameScreenEl=document.getElementById('gameScreen');
+const hgSalvageEl=document.getElementById('hgSalvage');
+const hgBestWaveEl=document.getElementById('hgBestWave');
+const hgLifetimeKillsEl=document.getElementById('hgLifetimeKills');
+const upgradeListEl=document.getElementById('upgradeList');
+const unlockListEl=document.getElementById('unlockList');
+const launchBtn=document.getElementById('launchBtn');
+
+const fieldEl=document.getElementById('field');
+const spawnBtn=document.getElementById('spawnBtn');
+const messageEl=document.getElementById('message');
+const levelLabelEl=document.getElementById('levelLabel');
+const mapNodesEl=document.getElementById('mapNodes');
+const mapLoopLabelEl=document.getElementById('mapLoopLabel');
+const hudLevelEl=document.getElementById('hudLevel');
+const hudEnergyEl=document.getElementById('hudEnergy');
+const hudEnergyBarEl=document.getElementById('hudEnergyBar');
+const hudBaseEl=document.getElementById('hudBase');
+const hudBaseBarEl=document.getElementById('hudBaseBar');
+const hudKillsEl=document.getElementById('hudKills');
+const hudKillsBarEl=document.getElementById('hudKillsBar');
+const selectedPanel=document.getElementById('selectedPanel');
+const spIcon=document.getElementById('spIcon');
+const spName=document.getElementById('spName');
+const spStats=document.getElementById('spStats');
+const legendEl=document.getElementById('legend');
+const damageFlashEl=document.getElementById('damageFlash');
+const overlay=document.getElementById('overlay');
+const overlayTitle=document.getElementById('overlayTitle');
+const overlayText=document.getElementById('overlayText');
+const overlayBtn=document.getElementById('overlayBtn');
+
+let skyZoneEl=null;
+let defenseLineEl=null;
+let colDividers=[];
+
+// ---------- Icons ----------
+function shipIconSVG(typeKey, tierIdx, uid){
+  if(typeKey==='support') return supportIconSVG(tierIdx, uid);
+  const t=SHIP_TYPES[typeKey];
+  const gid='sg_'+uid;
+  const accents={
+    speed:`<path d="M22,88 L11,99 M34,90 L26,99" stroke="${t.color}" stroke-width="4" stroke-linecap="round" opacity="0.65"/>`,
+    power:`<rect x="44" y="0" width="12" height="20" rx="3" fill="${t.colorDark}"/>`,
+    defense:`<circle cx="50" cy="52" r="46" fill="none" stroke="${t.color}" stroke-width="2.5" stroke-dasharray="7 6" opacity="0.5"/>`,
+    area:`<circle cx="50" cy="52" r="44" fill="none" stroke="${t.color}" stroke-width="2" stroke-dasharray="3 7" opacity="0.45"/>`
+  };
+  const n=tierIdx+1;
+  const totalW=n*13-3;
+  const startX=50-totalW/2;
+  let chevrons='';
+  for(let i=0;i<n;i++){
+    const cx=startX+i*13+4.5;
+    chevrons+=`<path d="M${cx-5},60 L${cx},52 L${cx+5},60 Z" fill="#ffffffdd"/>`;
+  }
+  return `<svg viewBox="0 0 100 104" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="${gid}" gradientUnits="userSpaceOnUse" x1="0" y1="6" x2="0" y2="92">
+        <stop offset="0" stop-color="${t.color}"/>
+        <stop offset="1" stop-color="${t.colorDark}"/>
+      </linearGradient>
+    </defs>
+    ${accents[typeKey]||''}
+    <path d="M50,6 L87,92 L50,72 L13,92 Z" fill="url(#${gid})" stroke="${t.colorDark}" stroke-width="3" stroke-linejoin="round"/>
+    <circle cx="50" cy="34" r="9" fill="#ffffffcc"/>
+    ${chevrons}
+  </svg>`;
+}
+function supportIconSVG(tierIdx, uid){
+  const t=SHIP_TYPES.support;
+  const gid='sg_'+uid;
+  const n=tierIdx+1;
+  const totalW=n*13-3;
+  const startX=50-totalW/2;
+  let chevrons='';
+  for(let i=0;i<n;i++){
+    const cx=startX+i*13+4.5;
+    chevrons+=`<path d="M${cx-5},88 L${cx},80 L${cx+5},88 Z" fill="#ffffffdd"/>`;
+  }
+  return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="${gid}" gradientUnits="userSpaceOnUse" x1="0" y1="6" x2="0" y2="94">
+        <stop offset="0" stop-color="${t.color}"/>
+        <stop offset="1" stop-color="${t.colorDark}"/>
+      </linearGradient>
+    </defs>
+    <circle cx="50" cy="50" r="42" fill="none" stroke="${t.color}" stroke-width="2" stroke-dasharray="4 5" opacity="0.5"/>
+    <polygon points="50,10 82,30 82,70 50,90 18,70 18,30" fill="url(#${gid})" stroke="${t.colorDark}" stroke-width="3" stroke-linejoin="round"/>
+    <circle cx="50" cy="50" r="10" fill="#ffffffdd"/>
+    <path d="M50,20 L50,32 M50,68 L50,80 M28,50 L18,50 M82,50 L72,50" stroke="#ffffffaa" stroke-width="3" stroke-linecap="round"/>
+    ${chevrons}
+  </svg>`;
+}
+function enemyIconSVG(uid, shielded){
+  const gid='eg_'+uid;
+  const shieldRing = shielded ? `<g class="shield-ring">
+      <polygon points="50,2 90,25 90,75 50,98 10,75 10,25" fill="#5fc9ff" opacity="0.14"/>
+      <polygon points="50,2 90,25 90,75 50,98 10,75 10,25" fill="none" stroke="#5fc9ff" stroke-width="5" opacity="0.85"/>
+    </g>` : '';
+  return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="${gid}" gradientUnits="userSpaceOnUse" x1="0" y1="4" x2="0" y2="96">
+        <stop offset="0" stop-color="#ff6b5c"/>
+        <stop offset="1" stop-color="#8a1f1f"/>
+      </linearGradient>
+    </defs>
+    <path d="M50,96 L88,14 L50,32 L12,14 Z" fill="url(#${gid})" stroke="#4d0f0f" stroke-width="3" stroke-linejoin="round"/>
+    <circle cx="38" cy="30" r="4.5" fill="#ffe27a"/>
+    <circle cx="62" cy="30" r="4.5" fill="#ffe27a"/>
+    ${shieldRing}
+  </svg>`;
+}
+function bossIconSVG(){
+  return `<svg viewBox="0 0 220 100" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="bossGrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="100">
+        <stop offset="0" stop-color="#ff7d5c"/>
+        <stop offset="1" stop-color="#6b1414"/>
+      </linearGradient>
+    </defs>
+    <path d="M110,96 L210,20 L160,34 L110,10 L60,34 L10,20 Z" fill="url(#bossGrad)" stroke="#3a0a0a" stroke-width="4" stroke-linejoin="round"/>
+    <circle cx="70" cy="34" r="6" fill="#ffe27a"/>
+    <circle cx="110" cy="26" r="6" fill="#ffe27a"/>
+    <circle cx="150" cy="34" r="6" fill="#ffe27a"/>
+  </svg>`;
+}
+
+// ---------- Field build & layout ----------
+function createField(){
+  fieldEl.innerHTML='';
+  deployDivs={};
+  colDividers=[];
+
+  skyZoneEl=document.createElement('div');
+  skyZoneEl.className='sky-zone';
+  fieldEl.appendChild(skyZoneEl);
+
+  for(let i=1;i<COLS;i++){
+    const div=document.createElement('div');
+    div.className='col-divider';
+    fieldEl.appendChild(div);
+    colDividers.push(div);
+  }
+
+  defenseLineEl=document.createElement('div');
+  defenseLineEl.className='defense-line';
+  defenseLineEl.innerHTML='<span>DEFENSE LINE</span>';
+  fieldEl.appendChild(defenseLineEl);
+
+  for(const r of DEPLOY_ROWS){
+    for(let c=0;c<COLS;c++){
+      const div=document.createElement('div');
+      div.className='cell deploy empty';
+      attachDragHandlers(div, r, c);
+      fieldEl.appendChild(div);
+      deployDivs[r+'_'+c]=div;
+    }
+  }
+
+  syncTileSize();
+}
+
+function syncTileSize(){
+  const maxBoardWidth=Math.min(window.innerWidth*0.92, 400);
+  const maxBoardHeight=Math.min(window.innerHeight*0.68, 640);
+  const tileFromWidth=(maxBoardWidth - PAD*2 - GAP*(COLS-1))/COLS;
+  const tileFromHeight=(maxBoardHeight - PAD*2 - GAP*(ROWS-1))/ROWS;
+  TILE=Math.max(32, Math.min(tileFromWidth, tileFromHeight, 64));
+
+  const fieldWidth=PAD*2 + COLS*TILE + (COLS-1)*GAP;
+  const fieldHeight=PAD*2 + ROWS*TILE + (ROWS-1)*GAP;
+  fieldEl.style.width=fieldWidth+'px';
+  fieldEl.style.height=fieldHeight+'px';
+
+  const skyBoundaryY=PAD + SKY_ROWS*(TILE+GAP) - GAP/2;
+  skyZoneEl.style.width=fieldWidth+'px';
+  skyZoneEl.style.height=skyBoundaryY+'px';
+  defenseLineEl.style.top=skyBoundaryY+'px';
+
+  for(let i=1;i<COLS;i++){
+    const x=PAD + i*(TILE+GAP) - GAP/2;
+    colDividers[i-1].style.left=x+'px';
+    colDividers[i-1].style.height=skyBoundaryY+'px';
+  }
+
+  for(const key in deployDivs){
+    const [r,c]=parseKey(key);
+    const p=cellTopLeft(r,c);
+    const div=deployDivs[key];
+    div.style.left=p.x+'px';
+    div.style.top=p.y+'px';
+    div.style.width=TILE+'px';
+    div.style.height=TILE+'px';
+  }
+
+  document.documentElement.style.setProperty('--tile-size', TILE+'px');
+  enemies.forEach(positionEnemyDOM);
+  if(boss) positionBossDOM();
+}
+window.addEventListener('resize', syncTileSize);
+
+// ---------- Rendering ----------
+function renderDeployCell(r,c){
+  const key=r+'_'+c;
+  const div=deployDivs[key];
+  const ship=shipGrid[key];
+  div.classList.toggle('empty', !ship);
+  div.classList.remove('tier-0','tier-1','tier-2','tier-3','tier-4');
+  if(!ship){ div.innerHTML=''; div.title=''; return; }
+  const t=SHIP_TYPES[ship.type];
+  const td=t.tiers[ship.tier];
+  const hpPct=Math.max(0, Math.round(ship.hp/ship.maxHp*100));
+  div.innerHTML=`
+    <div class="ship-icon">${shipIconSVG(ship.type, ship.tier, key)}</div>
+    <div class="tier-badge tier-${ship.tier}">T${ship.tier+1}</div>
+    <div class="hpbar"><div class="hpfill" style="width:${hpPct}%; background:${t.color}"></div></div>
+  `;
+  div.title=`${td.name} · ${t.label}`;
+  div.classList.add('tier-'+ship.tier);
+}
+
+function refreshAllDeployCells(){
+  for(const r of DEPLOY_ROWS) for(let c=0;c<COLS;c++) renderDeployCell(r,c);
+}
+
+function statsLine(typeKey, td){
+  if(typeKey==='support'){
+    const rate=(1000/td.healInterval).toFixed(2);
+    return `HEAL ${td.healAmount} · ${rate}/s · +${Math.round(td.fireBoost*100)}% ally rate · HP ${td.hp}`;
+  }
+  const rate=(1000/td.fireRate).toFixed(2);
+  let extra='';
+  if(typeKey==='defense') extra=` · SHIELD ${Math.round(td.reduction*100)}%`;
+  if(typeKey==='area') extra=` · SPLASH ±${td.splash}`;
+  return `DMG ${td.dmg} · ${rate}/s · HP ${td.hp}${extra}`;
+}
+
+function showSelectedPanelForShip(ship){
+  const t=SHIP_TYPES[ship.type];
+  const td=t.tiers[ship.tier];
+  selectedPanel.style.display='flex';
+  spIcon.innerHTML=shipIconSVG(ship.type, ship.tier, 'sel');
+  spName.textContent=`${td.name} · ${t.label}`;
+  spStats.textContent=statsLine(ship.type, td);
+}
+function hideSelectedPanel(){ selectedPanel.style.display='none'; }
+
+function setMessage(text){ messageEl.textContent=text; }
+
+// ---------- Merge-candidate highlighting ----------
+function clearMergeHighlights(){
+  for(const key in deployDivs) deployDivs[key].classList.remove('tap-selected','tap-candidate');
+}
+function applyMergeHighlights(){
+  clearMergeHighlights();
+  if(!highlightedKey) return;
+  const ship=shipGrid[highlightedKey];
+  if(!ship){ highlightedKey=null; return; }
+  deployDivs[highlightedKey].classList.add('tap-selected');
+  for(const key in shipGrid){
+    if(key===highlightedKey) continue;
+    const s=shipGrid[key];
+    if(s.type===ship.type && s.tier===ship.tier) deployDivs[key].classList.add('tap-candidate');
+  }
+}
+
+// ---------- Sector map ----------
+function buildMapUI(){
+  mapNodesEl.innerHTML='';
+  MAP_NODES.forEach(node=>{
+    const el=document.createElement('div');
+    el.className='map-node upcoming';
+    el.style.setProperty('--node-color', node.color);
+    el.title=node.name;
+    el.innerHTML=`<div class="map-node-badge">${node.icon}</div>`;
+    mapNodesEl.appendChild(el);
+  });
+}
+function updateMapUI(){
+  const nodeEls=mapNodesEl.querySelectorAll('.map-node');
+  const activeIdx = inBossFight ? 5 : currentLevelIdx;
+  nodeEls.forEach((el,i)=>{
+    el.classList.remove('done','current','upcoming');
+    if(i<activeIdx) el.classList.add('done');
+    else if(i===activeIdx) el.classList.add('current');
+    else el.classList.add('upcoming');
+  });
+  mapLoopLabelEl.textContent=`Loop ${loopCount+1}`;
+}
+
+function updateHUD(){
+  hudLevelEl.textContent = inBossFight ? 'Boss' : `${currentLevelIdx+1} / ${LEVELS.length}`;
+  levelLabelEl.textContent=currentLevelData.label;
+  hudEnergyEl.textContent=Math.floor(energy);
+  hudEnergyBarEl.style.width=Math.min(100, energy/100*100)+'%';
+  hudBaseEl.textContent=Math.round(baseHP)+' / '+EFFECTIVE_BASE_MAX_HP;
+  hudBaseBarEl.style.width=Math.max(0, baseHP/EFFECTIVE_BASE_MAX_HP*100)+'%';
+  if(inBossFight && boss){
+    hudKillsEl.textContent=`Boss HP ${Math.max(0,Math.round(boss.hp))}/${boss.maxHp}`;
+    hudKillsBarEl.style.width=Math.max(0, boss.hp/boss.maxHp*100)+'%';
+  } else {
+    hudKillsEl.textContent=`${killCountThisLevel} / ${currentLevelData.count}`;
+    hudKillsBarEl.style.width=Math.min(100, killCountThisLevel/currentLevelData.count*100)+'%';
+  }
+  spawnBtn.disabled = !gameActive || energy<EFFECTIVE_SPAWN_COST;
+  updateMapUI();
+}
+
+// ---------- Legend ----------
+function buildLegend(){
+  legendEl.innerHTML='';
+  for(const key of Object.keys(SHIP_TYPES)){
+    const t=SHIP_TYPES[key];
+    const locked = key==='support' && !save.unlocks.supportWing;
+    const card=document.createElement('div');
+    card.className='card'+(locked?' locked':'');
+    card.innerHTML=`
+      <div class="ic">${shipIconSVG(key,0,'legend_'+key)}</div>
+      <div>
+        <div class="name">${t.tiers[0].name} · ${t.label}${locked?' 🔒':''}</div>
+        <div class="desc">${locked?'Unlock in the Hangar to deploy this tower.':TYPE_DESC[key]}</div>
+      </div>
+    `;
+    legendEl.appendChild(card);
+  }
+}
+
+// ---------- Drag & drop (merge / reposition) + pickup-to-glow ----------
+function attachDragHandlers(div, r, c){
+  div.addEventListener('pointerdown', (ev)=>{
+    if(!gameActive) return;
+    const key=r+'_'+c;
+    const ship=shipGrid[key];
+    if(!ship){
+      if(highlightedKey){ highlightedKey=null; clearMergeHighlights(); }
+      return;
+    }
+    ev.preventDefault();
+    beginDrag(ev, key, ship, div);
+  });
+}
+
+function beginDrag(ev, key, ship, originDiv){
+  // If a previous drag never cleanly ended (pointer capture lost, etc.),
+  // force it closed before starting a new one so nothing gets stuck.
+  if(dragState) forceCancelDrag();
+
+  // Glow every matching tower the instant you pick this one up.
+  const wasAlreadyHighlighted = (highlightedKey===key);
+  highlightedKey=key;
+  applyMergeHighlights();
+
+  dragState={ sourceKey:key, ship, pointerId:ev.pointerId, hoverKey:null, ghostEl:null,
+              startX:ev.clientX, startY:ev.clientY, moved:false, wasAlreadyHighlighted };
+  originDiv.classList.add('dragging-source');
+  try{ originDiv.setPointerCapture(ev.pointerId); }catch(e){}
+
+  const ghost=document.createElement('div');
+  ghost.className='drag-ghost';
+  ghost.style.width=TILE+'px';
+  ghost.style.height=TILE+'px';
+  ghost.innerHTML=shipIconSVG(ship.type, ship.tier, 'ghost');
+  document.body.appendChild(ghost);
+  dragState.ghostEl=ghost;
+  positionGhost(ev.clientX, ev.clientY);
+  showSelectedPanelForShip(ship);
+
+  // Listen on window, not the origin cell: pointer capture can silently fail
+  // or get released mid-gesture (scrolling, some touch edge cases), and if
+  // the listeners only lived on the origin div, the drag would never
+  // properly end — leaving the ghost frozen on screen while the real ship
+  // stayed in its original cell (looks like a duplicate/misplaced tower).
+  window.addEventListener('pointermove', onDragMove);
+  window.addEventListener('pointerup', onDragEnd);
+  window.addEventListener('pointercancel', onDragCancel);
+}
+
+function forceCancelDrag(){
+  if(!dragState) return;
+  const originDiv=deployDivs[dragState.sourceKey];
+  if(originDiv) originDiv.classList.remove('dragging-source');
+  if(dragState.ghostEl) dragState.ghostEl.remove();
+  if(dragState.hoverKey){
+    const d=deployDivs[dragState.hoverKey];
+    if(d) d.classList.remove('drop-move','drop-merge','drop-invalid');
+  }
+  window.removeEventListener('pointermove', onDragMove);
+  window.removeEventListener('pointerup', onDragEnd);
+  window.removeEventListener('pointercancel', onDragCancel);
+  dragState=null;
+  hideSelectedPanel();
+}
+
+function positionGhost(clientX, clientY){
+  if(!dragState || !dragState.ghostEl) return;
+  dragState.ghostEl.style.left=clientX+'px';
+  dragState.ghostEl.style.top=clientY+'px';
+}
+
+function onDragMove(ev){
+  if(!dragState || ev.pointerId!==dragState.pointerId) return;
+  const dx=ev.clientX-dragState.startX, dy=ev.clientY-dragState.startY;
+  if(Math.sqrt(dx*dx+dy*dy)>8) dragState.moved=true;
+  positionGhost(ev.clientX, ev.clientY);
+  updateHoverTarget(ev.clientX, ev.clientY);
+}
+
+function updateHoverTarget(clientX, clientY){
+  const rect=fieldEl.getBoundingClientRect();
+  const x=clientX-rect.left, y=clientY-rect.top;
+  const col=Math.floor((x-PAD)/(TILE+GAP));
+  const row=Math.floor((y-PAD)/(TILE+GAP));
+  let key=null;
+  if(row>=SKY_ROWS && row<ROWS && col>=0 && col<COLS) key=row+'_'+col;
+
+  if(dragState.hoverKey && dragState.hoverKey!==key){
+    const prevDiv=deployDivs[dragState.hoverKey];
+    if(prevDiv) prevDiv.classList.remove('drop-move','drop-merge','drop-invalid');
+  }
+  dragState.hoverKey=key;
+  if(!key) return;
+
+  const div=deployDivs[key];
+  div.classList.remove('drop-move','drop-merge','drop-invalid');
+  if(key===dragState.sourceKey) return;
+  const occupant=shipGrid[key];
+  if(!occupant){
+    div.classList.add('drop-move');
+  } else if(occupant.type===dragState.ship.type && occupant.tier===dragState.ship.tier){
+    div.classList.add('drop-merge');
+  } else {
+    div.classList.add('drop-invalid');
+  }
+}
+
+function onDragEnd(ev){
+  if(!dragState || ev.pointerId!==dragState.pointerId) return;
+  finishDrag(dragState.hoverKey);
+}
+function onDragCancel(ev){
+  if(!dragState || ev.pointerId!==dragState.pointerId) return;
+  finishDrag(null);
+}
+
+function finishDrag(targetKey){
+  const sourceKey=dragState.sourceKey;
+  const ship=dragState.ship;
+  const wasTap=!dragState.moved;
+  const wasAlreadyHighlighted=dragState.wasAlreadyHighlighted;
+  const originDiv=deployDivs[sourceKey];
+  originDiv.classList.remove('dragging-source');
+  window.removeEventListener('pointermove', onDragMove);
+  window.removeEventListener('pointerup', onDragEnd);
+  window.removeEventListener('pointercancel', onDragCancel);
+  if(dragState.ghostEl) dragState.ghostEl.remove();
+  if(dragState.hoverKey){
+    const d=deployDivs[dragState.hoverKey];
+    if(d) d.classList.remove('drop-move','drop-merge','drop-invalid');
+  }
+  dragState=null;
+  hideSelectedPanel();
+
+  if(!targetKey || targetKey===sourceKey){
+    if(wasTap && wasAlreadyHighlighted){
+      highlightedKey=null;
+      clearMergeHighlights();
+    }
+    return;
+  }
+
+  const occupant=shipGrid[targetKey];
+  if(!occupant){
+    delete shipGrid[sourceKey];
+    const [tr,tc]=parseKey(targetKey);
+    ship.row=tr; ship.col=tc;
+    shipGrid[targetKey]=ship;
+    const [sr,sc]=parseKey(sourceKey);
+    renderDeployCell(sr,sc);
+    renderDeployCell(tr,tc);
+    setMessage('Tower repositioned.');
+    highlightedKey=targetKey;
+    applyMergeHighlights();
+  } else if(occupant.type===ship.type && occupant.tier===ship.tier){
+    if(occupant.tier>=maxTierFor(ship.type)){
+      setMessage('Already at max rank!');
+      SFX.invalid();
+      return;
+    }
+    if(pendingMergeTargets.has(targetKey)){
+      setMessage('That tower is already mid-merge — try again in a moment.');
+      SFX.invalid();
+      return;
+    }
+    performMerge(sourceKey, targetKey);
+  } else {
+    setMessage('Towers must match type and rank to merge.');
+    SFX.invalid();
+  }
+}
+
+function performMerge(sourceKey, targetKey){
+  const source=shipGrid[sourceKey];
+  const target=shipGrid[targetKey];
+  const sourceType=source.type;
+  const sourceTier=source.tier;
+  const [sr,sc]=parseKey(sourceKey);
+  const [tr,tc]=parseKey(targetKey);
+  const fromP=cellCenter(sr,sc);
+  const toP=cellCenter(tr,tc);
+
+  if(highlightedKey===sourceKey || highlightedKey===targetKey) highlightedKey=null;
+  delete shipGrid[sourceKey];
+  renderDeployCell(sr,sc);
+  clearMergeHighlights();
+  pendingMergeTargets.add(targetKey);
+
+  // The source ship visibly flies into the target and shrinks away — sells
+  // the idea that it's being absorbed, not just deleted.
+  const flyDiv=document.createElement('div');
+  flyDiv.className='merge-fly';
+  flyDiv.style.width=TILE+'px';
+  flyDiv.style.height=TILE+'px';
+  flyDiv.style.left=fromP.x+'px';
+  flyDiv.style.top=fromP.y+'px';
+  flyDiv.innerHTML=shipIconSVG(sourceType, sourceTier, 'flying');
+  fieldEl.appendChild(flyDiv);
+  void flyDiv.offsetWidth;
+  flyDiv.style.transition='left .2s cubic-bezier(.3,.6,.4,1), top .2s cubic-bezier(.3,.6,.4,1), transform .2s ease-in, opacity .2s ease-in';
+  flyDiv.style.left=toP.x+'px';
+  flyDiv.style.top=toP.y+'px';
+  flyDiv.style.transform='translate(-50%,-50%) scale(.25)';
+  flyDiv.style.opacity='0.15';
+
+  // Capture the exact ship object we're merging into. If it gets destroyed
+  // or moved away by combat during the ~200ms flight, we bail out gracefully
+  // in finalizeMerge instead of touching a ship that no longer exists there.
+  setTimeout(()=>{
+    flyDiv.remove();
+    finalizeMerge(targetKey, tr, tc, target);
+  }, 200);
+}
+
+function finalizeMerge(targetKey, tr, tc, expectedTarget){
+  pendingMergeTargets.delete(targetKey);
+  const target=shipGrid[targetKey];
+  if(!target || target!==expectedTarget || target.hp<=0){
+    // Target was destroyed (or moved) while the merge was in flight.
+    renderDeployCell(tr, tc);
+    applyMergeHighlights();
+    return;
+  }
+  const t=SHIP_TYPES[target.type];
+  const newTier=target.tier+1;
+  const td=t.tiers[newTier];
+  target.tier=newTier;
+  target.hp=td.hp;
+  target.maxHp=td.hp;
+  target.lastFire=performance.now()-(td.fireRate||td.healInterval||500);
+
+  renderDeployCell(tr,tc);
+  const tdiv=deployDivs[targetKey];
+  tdiv.classList.remove('merge-pop'); void tdiv.offsetWidth; tdiv.classList.add('merge-pop');
+  setTimeout(()=>tdiv.classList.remove('merge-pop'), 500);
+
+  spawnMergeBurst(tr, tc, t.color, newTier);
+  spawnMergeText(tr, tc, td.name, t.color, newTier>=4);
+
+  setMessage(newTier>=4 ? `⚡ ${td.name} reached MAX RANK!` : `Merged into ${td.name}!`);
+  SFX.merge(newTier);
+  if(newTier>=3) celebrateBigMerge(t.color);
+
+  applyMergeHighlights();
+}
+
+function spawnMergeBurst(r, c, color, tier){
+  const p=cellCenter(r,c);
+  const count=8+tier*3;
+  for(let i=0;i<count;i++){
+    const div=document.createElement('div');
+    div.className='merge-particle';
+    const angle=(Math.PI*2*i/count) + (Math.random()*0.4-0.2);
+    const dist=TILE*(0.55+Math.random()*0.75+tier*0.06);
+    div.style.left=p.x+'px';
+    div.style.top=p.y+'px';
+    div.style.background=color;
+    div.style.color=color;
+    div.style.setProperty('--dx', (Math.cos(angle)*dist)+'px');
+    div.style.setProperty('--dy', (Math.sin(angle)*dist)+'px');
+    fieldEl.appendChild(div);
+    setTimeout(()=>div.remove(), 520);
+  }
+  const ring=document.createElement('div');
+  ring.className='merge-ring';
+  const size=TILE*(1.3+tier*0.22);
+  ring.style.width=size+'px';
+  ring.style.height=size+'px';
+  ring.style.left=p.x+'px';
+  ring.style.top=p.y+'px';
+  ring.style.borderColor=color;
+  fieldEl.appendChild(ring);
+  setTimeout(()=>ring.remove(), 500);
+
+  const flash=document.createElement('div');
+  flash.className='merge-flash';
+  flash.style.width=TILE+'px';
+  flash.style.height=TILE+'px';
+  flash.style.left=p.x+'px';
+  flash.style.top=p.y+'px';
+  fieldEl.appendChild(flash);
+  setTimeout(()=>flash.remove(), 260);
+}
+
+function spawnMergeText(r, c, name, color, isMax){
+  const p=cellCenter(r,c);
+  const div=document.createElement('div');
+  div.className='merge-text';
+  div.textContent=(isMax?'★ ':'')+name+'!';
+  div.style.left=p.x+'px';
+  div.style.top=(p.y-TILE*0.55)+'px';
+  div.style.color=color;
+  div.style.fontSize=isMax?'15px':'13px';
+  fieldEl.appendChild(div);
+  setTimeout(()=>div.remove(), 850);
+}
+
+function celebrateBigMerge(color){
+  const flash=document.createElement('div');
+  flash.className='celebrate-flash';
+  flash.style.background=`radial-gradient(circle, ${color}55, transparent 70%)`;
+  document.body.appendChild(flash);
+  setTimeout(()=>flash.remove(), 550);
+  fieldEl.classList.remove('field-shake'); void fieldEl.offsetWidth; fieldEl.classList.add('field-shake');
+  setTimeout(()=>fieldEl.classList.remove('field-shake'), 400);
+}
+
+// ---------- Spawning ----------
+function spawnShip(){
+  if(!gameActive) return;
+  if(energy<EFFECTIVE_SPAWN_COST){ setMessage('Not enough energy.'); SFX.invalid(); return; }
+  const emptyCells=[];
+  for(const r of DEPLOY_ROWS) for(let c=0;c<COLS;c++) if(!shipGrid[r+'_'+c]) emptyCells.push([r,c]);
+  if(emptyCells.length===0){ setMessage('No empty berths — merge some towers first!'); SFX.invalid(); return; }
+
+  energy-=EFFECTIVE_SPAWN_COST;
+  const [r,c]=emptyCells[Math.floor(Math.random()*emptyCells.length)];
+  const types=Object.keys(SHIP_TYPES).filter(t=>t!=='support' || save.unlocks.supportWing);
+  const type=types[Math.floor(Math.random()*types.length)];
+  const td=SHIP_TYPES[type].tiers[0];
+  const ship={type, tier:0, hp:td.hp, maxHp:td.hp, row:r, col:c, lastFire:performance.now()-(td.fireRate||td.healInterval||500)};
+  shipGrid[r+'_'+c]=ship;
+  renderDeployCell(r,c);
+  updateHUD();
+  setMessage(`${td.name} deployed!`);
+  SFX.spawn();
+  applyMergeHighlights();
+}
+spawnBtn.addEventListener('click', spawnShip);
+
+// ---------- Combat helpers ----------
+// Ships only fire "forward" (toward the sky) — they can only target enemies
+// at or above their own row, never ones that have already slipped past them.
+function findFrontmostEnemyInColumn(col, maxRow){
+  let best=null;
+  for(const e of enemies){
+    if(e.col===col && e.hp>0 && e.rowF<=maxRow+0.001){
+      if(!best || e.rowF>best.rowF) best=e;
+    }
+  }
+  return best;
+}
+
+function columnDefenseReduction(col){
+  let max=0;
+  for(const r of DEPLOY_ROWS){
+    const s=shipGrid[r+'_'+col];
+    if(s && s.type==='defense' && s.hp>0){
+      const red=SHIP_TYPES.defense.tiers[s.tier].reduction;
+      if(red>max) max=red;
+    }
+  }
+  return max;
+}
+function adjacentSupportBoost(row,col){
+  let boost=0;
+  for(const [r,c] of adjacentCells(row,col)){
+    const s=shipGrid[r+'_'+c];
+    if(s && s.type==='support' && s.hp>0){
+      const td=SHIP_TYPES.support.tiers[s.tier];
+      if(td.fireBoost>boost) boost=td.fireBoost;
+    }
+  }
+  return boost;
+}
+function healAdjacent(ship, td){
+  let healedAny=false;
+  for(const [r,c] of adjacentCells(ship.row, ship.col)){
+    const key=r+'_'+c;
+    const target=shipGrid[key];
+    if(target && target.type!=='support' && target.hp>0 && target.hp<target.maxHp){
+      target.hp=Math.min(target.maxHp, target.hp+td.healAmount);
+      renderDeployCell(r,c);
+      spawnHealPulse(r,c,td.healAmount);
+      healedAny=true;
+    }
+  }
+  if(healedAny) SFX.heal();
+}
+function spawnHealPulse(r,c,amount){
+  const p=cellCenter(r,c);
+  const div=document.createElement('div');
+  div.className='heal-pulse';
+  div.textContent='+'+Math.round(amount);
+  div.style.left=p.x+'px';
+  div.style.top=p.y+'px';
+  fieldEl.appendChild(div);
+  setTimeout(()=>div.remove(), 700);
+}
+
+function fireBullet(ship, target){
+  const td=SHIP_TYPES[ship.type].tiers[ship.tier];
+  const from=cellCenter(ship.row, ship.col);
+  const to=cellCenter(target.rowF, target.col);
+  const div=document.createElement('div');
+  div.className='bullet bullet-'+ship.type;
+  div.style.left=from.x+'px';
+  div.style.top=from.y+'px';
+  fieldEl.appendChild(div);
+  void div.offsetWidth;
+  const rowsDist=Math.max(1, Math.abs(ship.row-target.rowF));
+  const dur=90+rowsDist*50;
+  div.style.transition=`left ${dur}ms linear, top ${dur}ms linear`;
+  div.style.left=to.x+'px';
+  div.style.top=to.y+'px';
+  const capturedRowF=target.rowF, capturedCol=target.col, capturedRef=target;
+  setTimeout(()=>{
+    div.remove();
+    applyDamage(ship, {rowF:capturedRowF, col:capturedCol, ref:capturedRef});
+  }, dur);
+}
+
+function applyDamage(ship, info){
+  const td=SHIP_TYPES[ship.type].tiers[ship.tier];
+  if(ship.type==='area'){
+    const splash=td.splash;
+    const hits=enemies.filter(e=>e.hp>0 && Math.abs(e.rowF-info.rowF)<0.75 && Math.abs(e.col-info.col)<=splash);
+    hits.forEach(e=>damageEnemy(e, td.dmg, ship.type));
+    spawnBlast(info.rowF, info.col, splash);
+  } else {
+    if(info.ref && info.ref.hp>0 && enemies.includes(info.ref)) damageEnemy(info.ref, td.dmg, ship.type);
+  }
+}
+
+function fireBulletAtBoss(ship){
+  const td=SHIP_TYPES[ship.type].tiers[ship.tier];
+  const from=cellCenter(ship.row, ship.col);
+  const to=cellCenter(boss.rowF, ship.col);
+  const div=document.createElement('div');
+  div.className='bullet bullet-'+ship.type;
+  div.style.left=from.x+'px';
+  div.style.top=from.y+'px';
+  fieldEl.appendChild(div);
+  void div.offsetWidth;
+  const rowsDist=Math.max(1, Math.abs(ship.row-boss.rowF));
+  const dur=90+rowsDist*50;
+  div.style.transition=`left ${dur}ms linear, top ${dur}ms linear`;
+  div.style.left=to.x+'px';
+  div.style.top=to.y+'px';
+  const dmg=td.dmg;
+  setTimeout(()=>{
+    div.remove();
+    if(boss && boss.hp>0){
+      boss.hp-=dmg;
+      updateBossHPBar();
+      flashBossHit();
+      SFX.bossHit();
+      updateHUD();
+      if(boss.hp<=0) killBoss();
+    }
+  }, dur);
+}
+
+function spawnBlast(rowF, col, splash){
+  const p=cellCenter(rowF, col);
+  const div=document.createElement('div');
+  div.className='blast';
+  const size=TILE*(1+splash*0.85);
+  div.style.width=size+'px';
+  div.style.height=size+'px';
+  div.style.left=p.x+'px';
+  div.style.top=p.y+'px';
+  fieldEl.appendChild(div);
+  setTimeout(()=>div.remove(), 420);
+}
+
+// Shielded enemies: only Power-line (Gunship) damage bypasses the shield and
+// hits HP directly. Every other type just wears the shield down; once it
+// breaks, the enemy takes damage from anyone like normal.
+function damageEnemy(e, dmg, sourceType){
+  let shieldAbsorbedOnly=false;
+  if(e.shielded && e.shieldHp>0 && sourceType!=='power'){
+    e.shieldHp-=dmg;
+    if(e.shieldHp<=0){
+      const overflow=Math.abs(e.shieldHp);
+      e.shieldHp=0;
+      e.hp-=overflow;
+      flashShieldBreak(e);
+      SFX.shieldBreak();
+    } else {
+      shieldAbsorbedOnly=true;
+    }
+  } else {
+    e.hp-=dmg;
+  }
+  updateEnemyHPBar(e);
+  if(shieldAbsorbedOnly){ flashShieldHit(e); SFX.shieldHit(); }
+  else { flashHit(e); SFX.hit(); }
+  if(e.hp<=0) killEnemy(e);
+}
+
+function updateEnemyHPBar(e){
+  const div=document.getElementById('enemy-'+e.id);
+  if(!div) return;
+  const fill=div.querySelector('.ehpfill');
+  if(fill) fill.style.width=Math.max(0, Math.round(e.hp/e.maxHp*100))+'%';
+  if(e.shielded){
+    const sfill=div.querySelector('.eshieldfill');
+    if(sfill) sfill.style.width=Math.max(0, Math.round(e.shieldHp/e.maxShieldHp*100))+'%';
+  }
+}
+
+function flashHit(e){
+  const div=document.getElementById('enemy-'+e.id);
+  if(!div) return;
+  div.classList.remove('hit'); void div.offsetWidth; div.classList.add('hit');
+}
+function flashShieldHit(e){
+  const div=document.getElementById('enemy-'+e.id);
+  if(!div) return;
+  div.classList.remove('shield-hit'); void div.offsetWidth; div.classList.add('shield-hit');
+}
+function flashShieldBreak(e){
+  const p=cellCenter(e.rowF, e.col);
+  const div=document.createElement('div');
+  div.className='shield-break';
+  const size=TILE*1.3;
+  div.style.width=size+'px';
+  div.style.height=size+'px';
+  div.style.left=p.x+'px';
+  div.style.top=p.y+'px';
+  fieldEl.appendChild(div);
+  setTimeout(()=>div.remove(), 420);
+  const eDiv=document.getElementById('enemy-'+e.id);
+  if(eDiv) eDiv.classList.add('shield-down');
+}
+function flashBossHit(){
+  const div=document.getElementById('boss');
+  if(!div) return;
+  div.classList.remove('hit'); void div.offsetWidth; div.classList.add('hit');
+}
+function updateBossHPBar(){
+  const div=document.getElementById('boss');
+  if(!div || !boss) return;
+  const fill=div.querySelector('.boss-hpfill');
+  if(fill) fill.style.width=Math.max(0, boss.hp/boss.maxHp*100)+'%';
+}
+
+function killEnemy(e){
+  const idx=enemies.indexOf(e);
+  if(idx>-1) enemies.splice(idx,1);
+  energy=Math.min(999, energy+KILL_REWARD);
+  totalKills++; killCountThisLevel++;
+  const div=document.getElementById('enemy-'+e.id);
+  if(div){ div.classList.add('die'); setTimeout(()=>div.remove(), 260); }
+  SFX.kill();
+  updateHUD();
+  checkLevelState();
+}
+
+function breach(e){
+  const idx=enemies.indexOf(e);
+  if(idx>-1) enemies.splice(idx,1);
+  baseHP=Math.max(0, baseHP-e.dmg);
+  const div=document.getElementById('enemy-'+e.id);
+  if(div){ div.classList.add('breach'); setTimeout(()=>div.remove(), 260); }
+  flashBaseDamage();
+  updateHUD();
+  if(baseHP<=0){ gameOver(); return; }
+  checkLevelState();
+}
+
+function flashBaseDamage(){
+  damageFlashEl.classList.remove('show'); void damageFlashEl.offsetWidth; damageFlashEl.classList.add('show');
+  setTimeout(()=>damageFlashEl.classList.remove('show'), 300);
+  SFX.baseDamage();
+}
+
+function destroyShip(key){
+  delete shipGrid[key];
+  const [r,c]=parseKey(key);
+  renderDeployCell(r,c);
+  const div=deployDivs[key];
+  div.classList.remove('debris-flash'); void div.offsetWidth; div.classList.add('debris-flash');
+  setTimeout(()=>div.classList.remove('debris-flash'), 350);
+  SFX.shipDestroyed();
+  if(highlightedKey===key) highlightedKey=null;
+  applyMergeHighlights();
+}
+
+// ---------- Enemies ----------
+function enemyStatsForLevel(level){
+  const loopMult=loopMultiplier(loopCount);
+  const t=level-1;
+  return {
+    hp: Math.round((14 + t*11 + t*t*1.2) * loopMult),
+    dmg: Math.round((4.5 + t*2 + t*t*0.3) * loopMult * 10)/10,
+    stepMs: Math.max(300, (1000 - t*105) / Math.sqrt(loopMult))
+  };
+}
+// Shielded raiders: tougher variant that shows up (in smaller numbers) during
+// waves 3-4. Same hull as a regular grunt, plus a shield layer on top.
+function shieldedStatsForLevel(level){
+  const base=enemyStatsForLevel(level);
+  const loopMult=loopMultiplier(loopCount);
+  return {
+    hp: base.hp,
+    dmg: base.dmg,
+    stepMs: base.stepMs*1.15,
+    shieldHp: Math.round((22 + (level-1)*10) * loopMult)
+  };
+}
+const SHIELD_WAVE_INDICES=[2,3]; // waves 3 & 4 (0-indexed)
+const SHIELD_SPAWN_CHANCE=0.25;
+
+function createEnemyDOM(e){
+  const div=document.createElement('div');
+  div.className='enemy'+(e.shielded?' shielded':'');
+  div.id='enemy-'+e.id;
+  div.style.width=(TILE*0.6)+'px';
+  div.style.height=(TILE*0.6)+'px';
+  div.innerHTML=enemyIconSVG(e.id, e.shielded)
+    + (e.shielded ? `<div class="eshield"><div class="eshieldfill" style="width:100%"></div></div>` : '')
+    + `<div class="ehp"><div class="ehpfill" style="width:100%"></div></div>`;
+  fieldEl.appendChild(div);
+  positionEnemyDOM(e);
+}
+function positionEnemyDOM(e){
+  const div=document.getElementById('enemy-'+e.id);
+  if(!div) return;
+  div.style.width=(TILE*0.6)+'px';
+  div.style.height=(TILE*0.6)+'px';
+  const p=cellCenter(e.rowF, e.col);
+  div.style.left=p.x+'px';
+  div.style.top=p.y+'px';
+}
+
+function spawnEnemy(){
+  const col=Math.floor(Math.random()*COLS);
+  const variance=0.85+Math.random()*0.3;
+  const level=currentLevelIdx+1;
+  const isShielded = SHIELD_WAVE_INDICES.includes(currentLevelIdx) && Math.random()<SHIELD_SPAWN_CHANCE;
+  const stats = isShielded ? shieldedStatsForLevel(level) : enemyStatsForLevel(level);
+  const hp=Math.round(stats.hp*variance);
+  const shieldHp = isShielded ? Math.round(stats.shieldHp*variance) : 0;
+  const e={
+    id:enemyIdSeq++, col, rowF:0,
+    hp, maxHp:hp,
+    shielded:isShielded, shieldHp, maxShieldHp:shieldHp,
+    dmg:Math.round(stats.dmg*variance),
+    speed: 1000/stats.stepMs,
+    state:'flying',
+    resumeAt:0,
+    engagedKey:null,
+    lastMeleeAt:0
+  };
+  enemies.push(e);
+  createEnemyDOM(e);
+}
+
+// ---------- Boss ----------
+function createBossDOM(){
+  const div=document.createElement('div');
+  div.id='boss';
+  div.className='boss';
+  div.innerHTML=`<div class="boss-body">${bossIconSVG()}</div><div class="boss-hp"><div class="boss-hpfill" style="width:100%"></div></div>`;
+  fieldEl.appendChild(div);
+  positionBossDOM();
+}
+function positionBossDOM(){
+  const div=document.getElementById('boss');
+  if(!div || !boss) return;
+  const span=boss.colEnd-boss.colStart+1;
+  const width=span*TILE + (span-1)*GAP;
+  const topLeft=cellTopLeft(boss.rowF, boss.colStart);
+  div.style.width=width+'px';
+  div.style.height=(TILE*0.9)+'px';
+  div.style.left=topLeft.x+'px';
+  div.style.top=topLeft.y+'px';
+}
+
+function startBoss(){
+  inBossFight=true;
+  enemiesSpawnedThisLevel=0;
+  killCountThisLevel=0;
+  const span=Math.min(3, COLS);
+  const colStart=Math.floor((COLS-span)/2);
+  const mult=loopMultiplier(loopCount);
+  const hp=Math.round(420*mult);
+  boss={
+    hp, maxHp:hp,
+    dmg: Math.round(9*mult),
+    colStart, colEnd: colStart+span-1,
+    rowF:0,
+    speed: 1000/1400,
+    state:'flying',
+    lastMeleeAt:0
+  };
+  currentLevelData={ count:1, label:`Loop ${loopCount+1} · Sector Boss` };
+  createBossDOM();
+  setMessage('A sector boss is inbound — concentrate fire!');
+  SFX.bossSpawn();
+  updateHUD();
+}
+
+function killBoss(){
+  gameActive=false;
+  const div=document.getElementById('boss');
+  if(div){ div.classList.add('die'); setTimeout(()=>div.remove(), 320); }
+  totalKills+=5;
+  energy=Math.min(999, energy+40);
+  inBossFight=false;
+  boss=null;
+  loopCount++;
+  wavesClearedThisRun++;
+  baseHP=Math.min(EFFECTIVE_BASE_MAX_HP, baseHP+35);
+  const loopBonus=25+loopCount*15;
+  save.salvage+=loopBonus;
+  persistSave();
+  updateHUD();
+  SFX.bossDefeat();
+  overlayMode='bossDefeated';
+  showOverlay('Sector Boss Destroyed! 💥', `Loop ${loopCount} complete — earned ${loopBonus} Salvage. Visit the Hangar to upgrade before pushing deeper.`, 'Upgrade & Continue');
+}
+
+// ---------- Main loop (requestAnimationFrame, single clock source) ----------
+let lastTs=null;
+function loop(ts){
+  if(lastTs===null) lastTs=ts;
+  let dt=(ts-lastTs)/1000;
+  if(dt>0.05) dt=0.05;
+  lastTs=ts;
+  if(gameActive) update(ts, dt);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+function update(ts, dt){
+  if(ts-lastEnergyTick>=1000){
+    energy=Math.min(999, energy+EFFECTIVE_ENERGY_REGEN);
+    lastEnergyTick=ts;
+    updateHUD();
+  }
+
+  if(!inBossFight && enemiesSpawnedThisLevel<currentLevelData.count && ts-lastSpawnAt>=currentSpawnInterval){
+    spawnEnemy();
+    lastSpawnAt=ts;
+    enemiesSpawnedThisLevel++;
+  }
+
+  for(const e of [...enemies]){
+    if(e.hp<=0) continue;
+    if(e.state==='flying'){
+      if(!(e.resumeAt && ts<e.resumeAt)){
+        e.rowF += e.speed*dt;
+        if(e.rowF>=ROWS){ breach(e); continue; }
+        const rowIdx=Math.floor(e.rowF);
+        if(rowIdx>=SKY_ROWS){
+          const occ=shipGrid[rowIdx+'_'+e.col];
+          if(occ && occ.hp>0){
+            e.rowF=rowIdx;
+            e.state='engaging';
+            e.engagedKey=rowIdx+'_'+e.col;
+            e.lastMeleeAt=ts;
+          }
+        }
+      }
+      positionEnemyDOM(e);
+    } else if(e.state==='engaging'){
+      const occ=shipGrid[e.engagedKey];
+      if(!occ || occ.hp<=0){
+        e.state='flying'; e.resumeAt=ts+250;
+      } else if(ts-e.lastMeleeAt>=MELEE_INTERVAL){
+        const reduction=columnDefenseReduction(e.col);
+        const dmg=e.dmg*(1-reduction);
+        occ.hp-=dmg;
+        e.lastMeleeAt=ts;
+        if(occ.hp<=0){
+          destroyShip(e.engagedKey);
+          e.state='flying'; e.resumeAt=ts+250;
+        } else {
+          renderDeployCell(occ.row, occ.col);
+        }
+      }
+    }
+  }
+
+  if(inBossFight && boss){
+    if(boss.state==='flying'){
+      boss.rowF += boss.speed*dt;
+      if(boss.rowF>=SKY_ROWS){ boss.rowF=SKY_ROWS; boss.state='parked'; boss.lastMeleeAt=ts; }
+      positionBossDOM();
+    } else if(boss.state==='parked'){
+      if(ts-boss.lastMeleeAt>=BOSS_MELEE_INTERVAL){
+        boss.lastMeleeAt=ts;
+        const candidates=[];
+        for(let c=boss.colStart;c<=boss.colEnd;c++){
+          const key=SKY_ROWS+'_'+c;
+          if(shipGrid[key] && shipGrid[key].hp>0) candidates.push(key);
+        }
+        if(candidates.length>0){
+          const key=candidates[Math.floor(Math.random()*candidates.length)];
+          const [rr,cc]=parseKey(key);
+          const reduction=columnDefenseReduction(cc);
+          const dmg=boss.dmg*(1-reduction);
+          shipGrid[key].hp-=dmg;
+          if(shipGrid[key].hp<=0) destroyShip(key);
+          else renderDeployCell(rr,cc);
+        } else {
+          baseHP=Math.max(0, baseHP-boss.dmg);
+          flashBaseDamage();
+          updateHUD();
+          if(baseHP<=0){ gameOver(); return; }
+        }
+      }
+    }
+  }
+
+  for(const key in shipGrid){
+    const ship=shipGrid[key];
+    if(!ship || ship.hp<=0) continue;
+
+    if(ship.type==='support'){
+      const td=SHIP_TYPES.support.tiers[ship.tier];
+      if(ts-ship.lastFire>=td.healInterval){
+        ship.lastFire=ts;
+        healAdjacent(ship, td);
+      }
+      continue;
+    }
+
+    const td=SHIP_TYPES[ship.type].tiers[ship.tier];
+    const boost=adjacentSupportBoost(ship.row, ship.col);
+    const effectiveFireRate=td.fireRate*(1-boost);
+    if(ts-ship.lastFire>=effectiveFireRate){
+      const target=findFrontmostEnemyInColumn(ship.col, ship.row);
+      if(target){
+        ship.lastFire=ts;
+        fireBullet(ship, target);
+      } else if(inBossFight && boss && boss.hp>0 && ship.col>=boss.colStart && ship.col<=boss.colEnd && boss.rowF<=ship.row+0.001){
+        ship.lastFire=ts;
+        fireBulletAtBoss(ship);
+      }
+    }
+  }
+
+  checkLevelState();
+}
+
+// ---------- Level flow ----------
+function checkLevelState(){
+  if(!gameActive || inBossFight) return;
+  if(enemiesSpawnedThisLevel>=currentLevelData.count && enemies.length===0){
+    completeLevel();
+  }
+}
+
+function endRun(){
+  const salvageEarned = totalKills*2 + wavesClearedThisRun*15 + (wavesClearedThisRun>save.bestWave?50:0);
+  save.salvage += salvageEarned;
+  if(wavesClearedThisRun>save.bestWave) save.bestWave=wavesClearedThisRun;
+  save.lifetimeKills += totalKills;
+  persistSave();
+  return salvageEarned;
+}
+
+function completeLevel(){
+  gameActive=false;
+  wavesClearedThisRun++;
+  baseHP=Math.min(EFFECTIVE_BASE_MAX_HP, baseHP+25);
+  energy+=20;
+  updateHUD();
+  SFX.waveComplete();
+  if(currentLevelIdx>=LEVELS.length-1){
+    overlayMode='waveDonePreBoss';
+    showOverlay('Waves Cleared!', `${currentLevelData.label} complete. A sector boss is inbound.`, 'Face the Boss');
+  } else {
+    overlayMode='levelComplete';
+    showOverlay('Wave Cleared!', `${currentLevelData.label} complete — ${killCountThisLevel} enemies destroyed.`, 'Next Wave');
+  }
+}
+
+function gameOver(){
+  gameActive=false;
+  const earned=endRun();
+  overlayMode='gameOver';
+  SFX.gameOver();
+  showOverlay('Base Destroyed', `Your fleet held out through ${wavesClearedThisRun} wave${wavesClearedThisRun===1?'':'s'} and ${totalKills} kills. Earned ${earned} Salvage.`, 'Return to Hangar');
+}
+
+function showOverlay(title, text, btnLabel){
+  overlayTitle.textContent=title;
+  overlayText.textContent=text;
+  overlayBtn.textContent=btnLabel;
+  overlay.classList.add('show');
+}
+
+overlayBtn.addEventListener('click', ()=>{
+  overlay.classList.remove('show');
+  SFX.click();
+  if(overlayMode==='levelComplete'){
+    startLevel(currentLevelIdx+1);
+  } else if(overlayMode==='waveDonePreBoss'){
+    gameActive=true;
+    startBoss();
+  } else if(overlayMode==='bossDefeated'){
+    goToHangarForLoopUpgrade();
+  } else {
+    goToHangar();
+  }
+});
+
+function clearEnemiesDOM(){
+  enemies.forEach(e=>{ const d=document.getElementById('enemy-'+e.id); if(d) d.remove(); });
+  enemies=[];
+  const bdiv=document.getElementById('boss');
+  if(bdiv) bdiv.remove();
+  boss=null;
+  inBossFight=false;
+  pendingMergeTargets.clear();
+  fieldEl.querySelectorAll('.bullet,.blast,.shield-break,.heal-pulse,.merge-fly,.merge-particle,.merge-ring,.merge-flash,.merge-text').forEach(n=>n.remove());
+}
+
+function startLevel(idx){
+  currentLevelIdx=idx;
+  currentLevelData={ ...LEVELS[idx], label: loopCount>0 ? `${LEVELS[idx].label} — Loop ${loopCount+1}` : LEVELS[idx].label };
+  enemiesSpawnedThisLevel=0;
+  killCountThisLevel=0;
+  clearEnemiesDOM();
+  currentSpawnInterval=Math.max(600, 1900-idx*280);
+  lastSpawnAt=performance.now()-currentSpawnInterval;
+  lastEnergyTick=performance.now();
+  gameActive=true;
+  updateHUD();
+  if(idx===2){
+    setMessage('Shielded raiders detected — only Gunships punch through their shields!');
+  } else {
+    setMessage(`${currentLevelData.label} — defend the line!`);
+  }
+}
+
+function startNewRun(){
+  recomputeEffectiveStats();
+  clearEnemiesDOM();
+  shipGrid={};
+  highlightedKey=null;
+  refreshAllDeployCells();
+  totalKills=0;
+  wavesClearedThisRun=0;
+  loopCount=0;
+  energy=EFFECTIVE_START_ENERGY;
+  baseHP=EFFECTIVE_BASE_MAX_HP;
+  buildLegend();
+  startLevel(0);
+}
+
+function goToHangar(){
+  gameActive=false;
+  clearEnemiesDOM();
+  runPausedMidLoop=false;
+  gameScreenEl.classList.remove('active');
+  hangarScreenEl.classList.add('active');
+  renderHangar();
+  updateHangarCopy();
+}
+
+// Boss defeated mid-run: pause here (keeping ships/energy/base HP/loop intact)
+// so the player can spend Salvage before pushing into the next loop.
+function goToHangarForLoopUpgrade(){
+  gameActive=false;
+  clearEnemiesDOM();
+  runPausedMidLoop=true;
+  gameScreenEl.classList.remove('active');
+  hangarScreenEl.classList.add('active');
+  renderHangar();
+  updateHangarCopy();
+}
+
+launchBtn.addEventListener('click', ()=>{
+  SFX.click();
+  hangarScreenEl.classList.remove('active');
+  gameScreenEl.classList.add('active');
+  syncTileSize();
+  if(runPausedMidLoop){
+    runPausedMidLoop=false;
+    recomputeEffectiveStats();
+    buildLegend();
+    startLevel(0);
+  } else {
+    startNewRun();
+  }
+});
+
+// ---------- Init ----------
+createField();
+buildLegend();
+buildMapUI();
+recomputeEffectiveStats();
+updateSoundToggleUI();
+updateHangarCopy();
+renderHangar();
+</script>
+</body>
+</html>

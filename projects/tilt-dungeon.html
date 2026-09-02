@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Tilt Dungeon</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0a0f; overflow: hidden; font-family: 'Courier New', monospace; }
+#c { display: block; width: 100vw; height: 100vh; }
+#hud { position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; user-select: none; }
+#health-bar-wrap { position: absolute; top: 16px; left: 16px; background: rgba(0,0,0,0.7); border: 1px solid #333; border-radius: 6px; padding: 8px 12px; min-width: 200px; }
+#health-label { color: #aaa; font-size: 11px; letter-spacing: 2px; margin-bottom: 4px; }
+#health-track { background: #222; border-radius: 3px; height: 12px; overflow: hidden; }
+#health-fill { height: 100%; background: #4ade80; border-radius: 3px; transition: width 0.15s, background 0.3s; width: 100%; }
+#health-text { color: #fff; font-size: 11px; margin-top: 4px; }
+#armor-panel { position: absolute; top: 16px; right: 16px; background: rgba(0,0,0,0.7); border: 1px solid #444; border-radius: 6px; padding: 8px 12px; text-align: right; display: none; }
+#armor-name { color: #fff; font-size: 13px; font-weight: bold; }
+#armor-type { font-size: 10px; letter-spacing: 2px; margin-top: 2px; padding: 2px 6px; border-radius: 3px; display: inline-block; }
+#score-wrap { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); border: 1px solid #333; border-radius: 6px; padding: 6px 16px; text-align: center; }
+#score-label { color: #888; font-size: 10px; letter-spacing: 2px; }
+#score-val { color: #fbbf24; font-size: 18px; font-weight: bold; }
+#dmg-popup-container { position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; }
+#notification { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); border: 1px solid #555; border-radius: 8px; padding: 10px 20px; color: #fff; font-size: 13px; text-align: center; display: none; max-width: 300px; white-space: pre-line; }
+#controls-hint { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); color: #555; font-size: 11px; letter-spacing: 1px; text-align: center; }
+#tilt-indicator { position: absolute; bottom: 50px; right: 20px; width: 60px; height: 60px; }
+#tilt-bg { border-radius: 50%; background: rgba(0,0,0,0.6); border: 1px solid #333; width: 100%; height: 100%; position: relative; }
+#tilt-dot { width: 10px; height: 10px; background: #60a5fa; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); }
+#overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.88); display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: all; }
+#overlay h1 { color: #fbbf24; font-size: 36px; margin-bottom: 10px; letter-spacing: 6px; }
+#overlay p { color: #aaa; font-size: 13px; margin-bottom: 6px; text-align: center; max-width: 400px; line-height: 1.7; }
+.start-btn { margin-top: 24px; padding: 12px 36px; background: #fbbf24; color: #000; border: none; border-radius: 6px; font-size: 15px; font-family: 'Courier New', monospace; cursor: pointer; letter-spacing: 2px; }
+.start-btn:hover { background: #f59e0b; }
+#room-banner { position: absolute; top: 45%; left: 50%; transform: translate(-50%,-50%); color: #fff; font-size: 22px; letter-spacing: 6px; pointer-events: none; opacity: 0; transition: opacity 0.5s; text-shadow: 0 0 20px rgba(255,255,255,0.4); }
+#wave-indicator { position: absolute; top: 90px; left: 16px; color: #888; font-size: 11px; letter-spacing: 2px; }
+#minimap { position: absolute; bottom: 16px; right: 20px; width: 60px; height: 60px; background: rgba(0,0,0,0.5); border: 1px solid #333; border-radius: 4px; }
+#physics-panel { position: absolute; bottom: 16px; left: 16px; background: rgba(0,0,0,0.75); border: 1px solid #334; border-radius: 6px; padding: 10px 14px; min-width: 210px; pointer-events: all; }
+#physics-panel .ph-title { color: #888; font-size: 10px; letter-spacing: 2px; margin-bottom: 8px; }
+.ph-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.ph-label { color: #aaa; font-size: 11px; width: 70px; flex-shrink: 0; }
+.ph-slider { flex: 1; accent-color: #60a5fa; cursor: pointer; }
+.ph-val { color: #fff; font-size: 11px; width: 32px; text-align: right; flex-shrink: 0; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud">
+  <div id="health-bar-wrap">
+    <div id="health-label">HP</div>
+    <div id="health-track"><div id="health-fill"></div></div>
+    <div id="health-text">100 / 100</div>
+  </div>
+  <div id="score-wrap">
+    <div id="score-label">SCORE</div>
+    <div id="score-val">0</div>
+  </div>
+  <div id="armor-panel">
+    <div id="armor-name">—</div>
+    <div id="armor-type">NORMAL</div>
+  </div>
+  <div id="wave-indicator">ROOM 1 / 5</div>
+  <div id="dmg-popup-container"></div>
+  <div id="notification"></div>
+  <div id="tilt-indicator"><div id="tilt-bg"><div id="tilt-dot"></div></div></div>
+  <div id="controls-hint">ARROW KEYS / WASD · ROLL INTO ENEMIES · COLLECT ARMOR PICKUPS</div>
+  <div id="room-banner"></div>
+  <div id="physics-panel">
+    <div class="ph-title">PHYSICS</div>
+    <div class="ph-row">
+      <span class="ph-label">ACCEL</span>
+      <input class="ph-slider" type="range" id="sl-accel" min="10" max="200" value="70" step="1">
+      <span class="ph-val" id="lbl-accel">70</span>
+    </div>
+    <div class="ph-row">
+      <span class="ph-label">MAX SPD</span>
+      <input class="ph-slider" type="range" id="sl-speed" min="5" max="60" value="22" step="1">
+      <span class="ph-val" id="lbl-speed">22</span>
+    </div>
+    <div class="ph-row">
+      <span class="ph-label">FRICTION</span>
+      <input class="ph-slider" type="range" id="sl-friction" min="900" max="999" value="985" step="1">
+      <span class="ph-val" id="lbl-friction">.985</span>
+    </div>
+  </div>
+</div>
+<div id="overlay">
+  <h1>TILT DUNGEON</h1>
+  <p>Tilt the board with arrow keys to roll your ball through 5 dungeon rooms.<br>
+  Crash into enemies at speed to knock them back and deal damage.<br>
+  Collect glowing armor pickups to unlock new attack types.</p>
+  <p style="color:#fbbf24;font-size:12px;margin-top:6px;">⬆⬇⬅➡ Arrow Keys / WASD to tilt the board</p>
+  <button class="start-btn" id="start-btn">▶ ENTER DUNGEON</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const canvas = document.getElementById('c');
+const overlay = document.getElementById('overlay');
+const healthFill = document.getElementById('health-fill');
+const healthText = document.getElementById('health-text');
+const armorPanel = document.getElementById('armor-panel');
+const armorName = document.getElementById('armor-name');
+const armorType = document.getElementById('armor-type');
+const scoreVal = document.getElementById('score-val');
+const notification = document.getElementById('notification');
+const tiltDot = document.getElementById('tilt-dot');
+const roomBanner = document.getElementById('room-banner');
+const waveIndicator = document.getElementById('wave-indicator');
+const dmgContainer = document.getElementById('dmg-popup-container');
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0a0f);
+scene.fog = new THREE.Fog(0x0a0a0f, 25, 65);
+
+const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 200);
+camera.position.set(0, 18, -8);
+camera.lookAt(0, 0, 0);
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+resize();
+window.addEventListener('resize', resize);
+
+// Lighting
+scene.add(new THREE.AmbientLight(0x223355, 0.9));
+const sun = new THREE.DirectionalLight(0xffeedd, 1.3);
+sun.position.set(5, 14, 8);
+sun.castShadow = true;
+sun.shadow.camera.left = sun.shadow.camera.bottom = -28;
+sun.shadow.camera.right = sun.shadow.camera.top = 28;
+sun.shadow.camera.far = 90;
+sun.shadow.mapSize.width = sun.shadow.mapSize.height = 1024;
+scene.add(sun);
+const fill = new THREE.PointLight(0x4466aa, 0.5, 45);
+fill.position.set(-8, 6, -8);
+scene.add(fill);
+
+// ── INPUT ────────────────────────────────────────────────────────────────────
+const keys = {};
+window.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+});
+window.addEventListener('keyup', e => { keys[e.code] = false; });
+
+let touchStart = null, touchDelta = {x:0,y:0};
+canvas.addEventListener('touchstart', e => { touchStart = {x:e.touches[0].clientX, y:e.touches[0].clientY}; touchDelta={x:0,y:0}; }, {passive:true});
+canvas.addEventListener('touchmove', e => {
+  if (!touchStart) return;
+  touchDelta.x = (e.touches[0].clientX - touchStart.x) * 0.05;
+  touchDelta.y = (e.touches[0].clientY - touchStart.y) * 0.05;
+}, {passive:true});
+canvas.addEventListener('touchend', () => { touchStart=null; touchDelta={x:0,y:0}; }, {passive:true});
+
+// ── BOARD ────────────────────────────────────────────────────────────────────
+const BOARD_SIZE = 22;
+const HALF = BOARD_SIZE / 2;
+const boardGroup = new THREE.Group();
+scene.add(boardGroup);
+
+const floorMat = new THREE.MeshLambertMaterial({ color: 0x1a1a2e });
+const floor = new THREE.Mesh(new THREE.BoxGeometry(BOARD_SIZE, 0.4, BOARD_SIZE), floorMat);
+floor.receiveShadow = true;
+floor.position.y = -0.2;
+boardGroup.add(floor);
+
+const grid = new THREE.GridHelper(BOARD_SIZE, 22, 0x223366, 0x151530);
+grid.position.y = 0.01;
+boardGroup.add(grid);
+
+const wallMat = new THREE.MeshLambertMaterial({ color: 0x0c0c1e });
+[
+  [0, 1.5, HALF,  BOARD_SIZE, 3, 0.5],
+  [0, 1.5, -HALF, BOARD_SIZE, 3, 0.5],
+  [HALF,  1.5, 0, 0.5, 3, BOARD_SIZE],
+  [-HALF, 1.5, 0, 0.5, 3, BOARD_SIZE]
+].forEach(([x,y,z,w,h,d]) => {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), wallMat);
+  m.position.set(x,y,z); m.castShadow = true; m.receiveShadow = true;
+  boardGroup.add(m);
+});
+
+// Wall torches (point lights)
+const torchColors = [0xff6633, 0xff8844, 0xffaa55];
+[[HALF-0.3,2,0],[-(HALF-0.3),2,0],[0,2,HALF-0.3],[0,2,-(HALF-0.3)]].forEach(([x,y,z],i) => {
+  const tl = new THREE.PointLight(torchColors[i%3], 0.7, 12);
+  tl.position.set(x,y,z);
+  boardGroup.add(tl);
+});
+
+let tiltX = 0, tiltZ = 0;
+const MAX_TILT = 20, TILT_SPEED = 5, TILT_RETURN = 3;
+
+// ── PLAYER ───────────────────────────────────────────────────────────────────
+const playerMat = new THREE.MeshLambertMaterial({ color: 0x60a5fa });
+const playerMesh = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 12), playerMat);
+playerMesh.castShadow = true;
+boardGroup.add(playerMesh);
+
+const glowLight = new THREE.PointLight(0x60a5fa, 1, 5);
+playerMesh.add(glowLight);
+
+// Shadow blob under player
+const blobMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3 });
+const blob = new THREE.Mesh(new THREE.CircleGeometry(0.5, 12), blobMat);
+blob.rotation.x = -Math.PI / 2;
+blob.position.y = -0.18;
+boardGroup.add(blob);
+
+let player = {
+  pos: new THREE.Vector3(0, 0.6, 0),
+  vel: new THREE.Vector3(),
+  hp: 100, maxHp: 100,
+  damage: 12, knockback: 9,
+  iframes: 0, armor: null, dead: false
+};
+
+// ── ENEMY & ARMOR DATA ───────────────────────────────────────────────────────
+const ENEMY_CFGS = [
+  { color:0xe74c3c, hp:30,  speed:2.0, size:0.55, dmg:10, name:'Crawler' },
+  { color:0xe67e22, hp:55,  speed:1.3, size:0.80, dmg:16, name:'Brute'   },
+  { color:0x9b59b6, hp:22,  speed:3.0, size:0.42, dmg: 7, name:'Wisp'    },
+];
+
+const ARMOR_TYPES = [
+  { name:'Iron Shell',     type:'NORMAL',    typeColor:'#94a3b8', dmgMult:1.0, kbMult:1.2, ballColor:0x94a3b8 },
+  { name:'Spike Coat',     type:'SPIKE',     typeColor:'#f97316', dmgMult:2.0, kbMult:0.5, ballColor:0xf97316 },
+  { name:'Guardian Plate', type:'SHIELD',    typeColor:'#3b82f6', dmgMult:0.5, kbMult:3.0, ballColor:0x3b82f6 },
+  { name:'Phantom Shroud', type:'PHANTOM',   typeColor:'#a855f7', dmgMult:0,   kbMult:1.0, ballColor:0xa855f7 },
+];
+
+// Maze hole definitions: [centerX, centerZ, width, depth]
+// Maze wall definitions: [x, z, width, height, depth]  (height always 1.5)
+// Maze grid system: each cell is CELL_SIZE world units.
+// Grid is GRID cells wide/tall, centered at 0,0.
+// 1 = floor, 0 = void, S = start, G = goal
+// Rows go top-to-bottom (row 0 = most negative Z = "top" of screen from above)
+const CELL = 2.2; // world units per cell
+const MAZE_LEVELS = [
+  {
+    // ── THE BRIDGE ────────────────────────────────────────────────────────
+    // Solution: start center-top, jog RIGHT around first gap, jog LEFT
+    // around second gap, reach goal bottom-left. Verified solvable by BFS.
+    name: 'THE BRIDGE',
+    hint: 'The path splits — find the way around each gap',
+    floorColor: 0x0a1a0a,
+    grid: [
+      [0,0,0,1,1,1,1,1,0,0,0],  // wide start platform
+      [0,0,0,0,0,0,0,1,0,0,0],  // narrow right edge
+      [0,0,0,0,0,0,0,1,0,0,0],  // continue right
+      [0,0,0,0,1,1,1,1,0,0,0],  // reconnect center-right
+      [0,0,0,0,1,0,0,0,0,0,0],  // jog left
+      [0,0,0,0,1,0,0,0,0,0,0],  // narrow left corridor
+      [0,0,0,0,1,1,1,0,0,0,0],  // widen
+      [0,0,0,0,0,0,1,0,0,0,0],  // jog right
+      [0,0,0,0,0,0,1,0,0,0,0],  // continue right
+      [0,0,0,1,1,1,1,0,0,0,0],  // reconnect center
+      [0,0,0,1,1,1,0,0,0,0,0],  // goal platform
+    ],
+    startCell: [5, 0],
+    goalCell:  [4, 10],
+  },
+  {
+    // ── LABYRINTH ─────────────────────────────────────────────────────────
+    // Solution: right → down → left → down → right → down to goal
+    name: 'LABYRINTH',
+    hint: 'Find the winding path through the dark',
+    floorColor: 0x1a0a0a,
+    grid: [
+      [0,0,0,0,0,0,0,0,0,0,0],
+      [0,1,1,1,1,0,0,0,0,0,0], // start row — top-left corridor
+      [0,1,0,0,1,0,0,0,0,0,0],
+      [0,1,0,0,1,1,1,1,0,0,0], // turn right
+      [0,1,0,0,0,0,0,1,0,0,0],
+      [0,1,1,1,0,0,0,1,0,0,0], // left branch
+      [0,0,0,1,0,0,0,1,0,0,0],
+      [0,0,0,1,1,1,1,1,0,0,0], // merge and go right
+      [0,0,0,0,0,0,0,1,0,0,0],
+      [0,0,0,0,0,0,0,1,1,1,0], // turn right to goal
+      [0,0,0,0,0,0,0,0,0,1,0], // goal
+    ],
+    startCell: [1, 1],
+    goalCell:  [9, 10],
+  },
+  {
+    // ── THE GAUNTLET ──────────────────────────────────────────────────────
+    // Solution: S-curve — center down, dodge left, dodge right, center to goal
+    name: 'THE GAUNTLET',
+    hint: 'Precision only. One tile wide in places.',
+    floorColor: 0x1a0a1a,
+    grid: [
+      [0,0,0,0,1,1,1,0,0,0,0], // start — center
+      [0,0,0,0,1,0,0,0,0,0,0], // narrow left turn
+      [0,1,1,1,1,0,0,0,0,0,0], // go left
+      [0,1,0,0,0,0,0,0,0,0,0], // single tile corner
+      [0,1,1,0,0,0,0,0,0,0,0],
+      [0,0,1,1,1,1,0,0,0,0,0], // traverse right
+      [0,0,0,0,0,1,0,0,0,0,0],
+      [0,0,0,0,0,1,1,1,1,0,0], // go right
+      [0,0,0,0,0,0,0,0,1,0,0], // single tile corner
+      [0,0,0,0,0,0,0,0,1,1,0],
+      [0,0,0,0,1,1,1,1,1,0,0], // final stretch to goal center
+    ],
+    startCell: [5, 0],
+    goalCell:  [5, 10],
+  },
+];
+
+const ROOM_CFGS = [
+  { type:'combat', name:'ENTRANCE',   spawns:[[0,0,0],[3,0,2],[-3,0,2]], armor:null  },
+  { type:'combat', name:'IRON HALL',  spawns:[[4,0,0],[-4,0,0],[0,0,4],[0,0,-4]], armor:0 },
+  { type:'maze',   mazeIdx: 0 },
+  { type:'combat', name:'SPIKE PIT',  spawns:[[4,0,4],[-4,0,4],[4,0,-4],[-4,0,-4],[0,0,2]], armor:1 },
+  { type:'maze',   mazeIdx: 1 },
+  { type:'combat', name:'GHOST WING', spawns:[[3,0,3],[-3,0,3],[0,0,-4],[4,0,-2],[-4,0,-2],[0,0,4]], armor:2 },
+  { type:'maze',   mazeIdx: 2 },
+  { type:'combat', name:'BOSS VAULT', spawns:[[6,0,0],[-6,0,0],[0,0,6],[0,0,-6],[4,0,4],[-4,0,4],[4,0,-4],[-4,0,-4]], armor:3 },
+];
+
+const enemies = [];
+const pickups = [];
+const mazeTiles = [];   // floor tiles for current maze
+const mazeHoles = [];   // hole zones [{x,z,w,d}]
+let mazeGoal = null;    // goal mesh
+let isMazeLevel = false;
+let gameActive = false, score = 0, currentRoom = 0;
+let roomClearing = false;
+
+// ── ROOM LOADING ─────────────────────────────────────────────────────────────
+function clearRoom() {
+  enemies.forEach(e => boardGroup.remove(e.mesh));
+  enemies.length = 0;
+  pickups.forEach(p => boardGroup.remove(p.mesh));
+  pickups.length = 0;
+  mazeTiles.forEach(m => boardGroup.remove(m));
+  mazeTiles.length = 0;
+  mazeHoles.length = 0;
+  if (mazeGoal) { boardGroup.remove(mazeGoal); mazeGoal = null; }
+  isMazeLevel = false;
+  // Restore walls and grid visibility
+  boardGroup.children.forEach(c => {
+    if (c.userData.isMazeWall) boardGroup.remove(c);
+  });
+}
+
+function loadRoom(idx) {
+  clearRoom();
+  roomClearing = false;
+  const cfg = ROOM_CFGS[Math.min(idx, ROOM_CFGS.length-1)];
+
+  player.vel.set(0,0,0);
+  tiltX = 0; tiltZ = 0;
+  boardGroup.rotation.set(0,0,0);
+
+  waveIndicator.textContent = `LEVEL ${idx+1} / ${ROOM_CFGS.length}`;
+
+  if (cfg.type === 'maze') {
+    loadMazeLevel(cfg.mazeIdx);
+  } else {
+    isMazeLevel = false;
+    const floorColors = [0x1a1a2e,0x1a2a1a,0x2a1a1a,0x1a1a2e,0x2a0a0a];
+    floorMat.color.setHex(floorColors[idx % floorColors.length]);
+    floor.visible = true;
+    grid.visible = true;
+    cfg.spawns.forEach(([x,_,z], i) => spawnEnemy(x, z, i % ENEMY_CFGS.length));
+    if (cfg.armor !== null) spawnArmorPickup(cfg.armor);
+    player.pos.set(0, 0.6, -7);
+    showBanner(cfg.name);
+  }
+}
+
+function loadMazeLevel(mazeIdx) {
+  isMazeLevel = true;
+  const mz = MAZE_LEVELS[mazeIdx];
+  floor.visible = false;
+  grid.visible = false;
+
+  const rows = mz.grid.length;
+  const cols = mz.grid[0].length;
+  // Center the grid in world space
+  const originX = -(cols * CELL) / 2 + CELL / 2;
+  const originZ = -(rows * CELL) / 2 + CELL / 2;
+
+  const floorMats = [
+    new THREE.MeshLambertMaterial({ color: mz.floorColor }),
+    new THREE.MeshLambertMaterial({ color: new THREE.Color(mz.floorColor).addScalar(0.04).getHex() }),
+  ];
+  const edgeMat = new THREE.MeshBasicMaterial({ color: 0xff2200, transparent: true, opacity: 0.85 });
+  const wallMat2 = new THREE.MeshLambertMaterial({ color: 0x2a3a4a });
+
+  // Track which cells are floor for fall detection
+  const floorCells = new Set();
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const wx = originX + c * CELL;
+      const wz = originZ + r * CELL;
+
+      if (mz.grid[r][c] === 1) {
+        // Floor tile
+        const mat = floorMats[(r + c) % 2];
+        const tile = new THREE.Mesh(new THREE.BoxGeometry(CELL - 0.1, 0.4, CELL - 0.1), mat);
+        tile.position.set(wx, -0.2, wz);
+        tile.receiveShadow = true;
+        boardGroup.add(tile);
+        mazeTiles.push(tile);
+        floorCells.add(`${c},${r}`);
+
+        // Check 4 neighbors — add red edge strip if neighbor is void
+        const neighbors = [[0,-1,'z-'],[0,1,'z+'],[- 1,0,'x-'],[1,0,'x+']];
+        for (const [dc, dr, side] of neighbors) {
+          const nc = c + dc, nr = r + dr;
+          const neighborIsVoid = nc < 0 || nr < 0 || nc >= cols || nr >= rows || mz.grid[nr][nc] === 0;
+          if (!neighborIsVoid) continue;
+          const eg = new THREE.Mesh(new THREE.BoxGeometry(
+            side.startsWith('z') ? CELL - 0.1 : 0.18,
+            0.06,
+            side.startsWith('x') ? CELL - 0.1 : 0.18
+          ), edgeMat);
+          const ex = wx + (side === 'x-' ? -(CELL/2 - 0.09) : side === 'x+' ? (CELL/2 - 0.09) : 0);
+          const ez = wz + (side === 'z-' ? -(CELL/2 - 0.09) : side === 'z+' ? (CELL/2 - 0.09) : 0);
+          eg.position.set(ex, 0.02, ez);
+          boardGroup.add(eg);
+          mazeTiles.push(eg);
+        }
+      } else {
+        // Void — short wall stub for visual depth
+        const stub = new THREE.Mesh(new THREE.BoxGeometry(CELL, 0.3, CELL), wallMat2);
+        stub.position.set(wx, -0.55, wz);
+        boardGroup.add(stub);
+        mazeTiles.push(stub);
+      }
+    }
+  }
+
+  // Store floor cell info for fall detection
+  mz._floorCells = floorCells;
+  mz._originX = originX;
+  mz._originZ = originZ;
+  mz._rows = rows;
+  mz._cols = cols;
+
+  // Goal — glowing green disc at goal cell
+  const [gc, gr] = mz.goalCell;
+  const goalWX = originX + gc * CELL;
+  const goalWZ = originZ + gr * CELL;
+  const goalGeo = new THREE.CylinderGeometry(CELL * 0.4, CELL * 0.4, 0.12, 24);
+  const goalMat = new THREE.MeshLambertMaterial({ color: 0x00ff88, emissive: 0x00ff88, emissiveIntensity: 0.8 });
+  mazeGoal = new THREE.Mesh(goalGeo, goalMat);
+  mazeGoal.position.set(goalWX, 0.1, goalWZ);
+  const goalLight = new THREE.PointLight(0x00ff88, 2, 7);
+  goalLight.position.set(0, 1, 0);
+  mazeGoal.add(goalLight);
+  boardGroup.add(mazeGoal);
+  mz._goalWX = goalWX;
+  mz._goalWZ = goalWZ;
+
+  // Player start
+  const [sc, sr] = mz.startCell;
+  const startWX = originX + sc * CELL;
+  const startWZ = originZ + sr * CELL;
+  player.pos.set(startWX, 0.6, startWZ);
+  mz._startWX = startWX;
+  mz._startWZ = startWZ;
+
+  showBanner(mz.name);
+  showNotification(mz.hint);
+}
+
+function spawnEnemy(x, z, cfgIdx) {
+  const cfg = ENEMY_CFGS[cfgIdx];
+  const mat = new THREE.MeshLambertMaterial({ color: cfg.color });
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(cfg.size, 12, 8), mat);
+  mesh.castShadow = true;
+  boardGroup.add(mesh);
+  const el = new THREE.PointLight(cfg.color, 0.5, 4);
+  mesh.add(el);
+  // Health bar (two thin boxes above enemy)
+  const barBg = new THREE.Mesh(new THREE.BoxGeometry(1,0.12,0.12), new THREE.MeshBasicMaterial({color:0x333333}));
+  barBg.position.set(0, cfg.size+0.4, 0);
+  const barFg = new THREE.Mesh(new THREE.BoxGeometry(1,0.12,0.12), new THREE.MeshBasicMaterial({color:0x4ade80}));
+  barFg.position.set(0, cfg.size+0.4, 0.01);
+  mesh.add(barBg); mesh.add(barFg);
+  enemies.push({
+    mesh, mat, cfg, barFg,
+    pos: new THREE.Vector3(x, cfg.size, z),
+    vel: new THREE.Vector3(),
+    hp: cfg.hp, maxHp: cfg.hp,
+    stunTimer: 0, alive: true,
+    patrolTarget: new THREE.Vector3(Math.random()*16-8, cfg.size, Math.random()*16-8),
+    patrolTimer: 2,
+  });
+}
+
+function spawnArmorPickup(armorIdx) {
+  const a = ARMOR_TYPES[armorIdx];
+  const mat = new THREE.MeshLambertMaterial({ color: a.ballColor, emissive: a.ballColor, emissiveIntensity: 0.4 });
+  const mesh = new THREE.Mesh(new THREE.OctahedronGeometry(0.55), mat);
+  boardGroup.add(mesh);
+  const pl = new THREE.PointLight(a.ballColor, 1.2, 6);
+  mesh.add(pl);
+  const pos = new THREE.Vector3(0, 0.9, 6.5);
+  mesh.position.copy(pos);
+  pickups.push({ mesh, pos, armorIdx, collected: false, t: 0 });
+}
+
+// ── PHYSICS UPDATE ───────────────────────────────────────────────────────────
+function update(dt) {
+  if (!gameActive || player.dead) return;
+
+  // Input
+  let iX = 0, iZ = 0;
+  if (keys['ArrowUp']    || keys['KeyW']) iZ =  1;
+  if (keys['ArrowDown']  || keys['KeyS']) iZ = -1;
+  if (keys['ArrowLeft']  || keys['KeyA']) iX = -1;
+  if (keys['ArrowRight'] || keys['KeyD']) iX =  1;
+  if (Math.abs(touchDelta.x) > 0.02 || Math.abs(touchDelta.y) > 0.02) {
+    iX = Math.max(-1, Math.min(1, touchDelta.x));
+    iZ = Math.max(-1, Math.min(1, -touchDelta.y));
+  }
+
+  // Tilt board: rotation.z tilts left/right (right key = negative Z rotation = right side down = ball rolls right)
+  //             rotation.x tilts forward/back (up key = negative X rotation = front down = ball rolls forward)
+  const tgtX = iZ * MAX_TILT;
+  const tgtZ = iX * MAX_TILT;
+  const tSpd = (Math.abs(iX)+Math.abs(iZ) > 0.01) ? TILT_SPEED : TILT_RETURN;
+  tiltX += (tgtX - tiltX) * dt * tSpd;
+  tiltZ += (tgtZ - tiltZ) * dt * tSpd;
+  boardGroup.rotation.x = THREE.MathUtils.degToRad(tiltX);
+  boardGroup.rotation.z = THREE.MathUtils.degToRad(tiltZ);
+
+  // Tilt UI dot
+  tiltDot.style.left = (50 + (tiltZ/MAX_TILT)*18) + '%';
+  tiltDot.style.top  = (50 + (tiltX/MAX_TILT)*18) + '%';
+
+  // Ball rolls down the slope — force matches tilt direction exactly
+  const ACCEL = window.ACCEL||70, FRICTION = window.FRICTION||0.985, MAX_SPD = window.MAX_SPD||22;
+  player.vel.x -= tiltZ * ACCEL * dt / MAX_TILT;
+  player.vel.z += tiltX * ACCEL * dt / MAX_TILT;
+  player.vel.x *= FRICTION;
+  player.vel.z *= FRICTION;
+
+  const spd = player.vel.length();
+  if (spd > MAX_SPD) player.vel.multiplyScalar(MAX_SPD / spd);
+
+  player.pos.x += player.vel.x * dt;
+  player.pos.z += player.vel.z * dt;
+
+  // Wall clamp
+  const b = HALF - 0.7;
+  if (player.pos.x >  b) { player.pos.x =  b; player.vel.x *= -0.4; }
+  if (player.pos.x < -b) { player.pos.x = -b; player.vel.x *= -0.4; }
+  if (player.pos.z >  b) { player.pos.z =  b; player.vel.z *= -0.4; }
+  if (player.pos.z < -b) { player.pos.z = -b; player.vel.z *= -0.4; }
+
+  playerMesh.position.copy(player.pos);
+  playerMesh.rotation.x += player.vel.z * dt * 2;
+  playerMesh.rotation.z -= player.vel.x * dt * 2;
+  blob.position.set(player.pos.x, -0.18, player.pos.z);
+
+  if (player.iframes > 0) {
+    player.iframes -= dt;
+    playerMesh.visible = Math.floor(player.iframes*10)%2===0;
+  } else { playerMesh.visible = true; }
+
+  // Camera smooth follow
+  const camTgt = new THREE.Vector3(player.pos.x*0.25, 18, player.pos.z*0.25 - 8);
+  camera.position.lerp(camTgt, dt*3);
+  const lookAt = new THREE.Vector3(player.pos.x*0.3, 0, player.pos.z*0.3);
+  camera.lookAt(lookAt);
+
+  // ── Enemies
+  enemies.forEach(e => {
+    if (!e.alive) return;
+    e.stunTimer -= dt;
+    e.patrolTimer -= dt;
+    e.vel.x *= 0.82; e.vel.z *= 0.82;
+
+    const toP = player.pos.clone().sub(e.pos);
+    const dist = toP.length();
+
+    if (e.stunTimer <= 0) {
+      if (dist < 8) {
+        const d = toP.normalize();
+        e.vel.x += d.x * e.cfg.speed * 14 * dt;
+        e.vel.z += d.z * e.cfg.speed * 14 * dt;
+      } else {
+        if (e.patrolTimer <= 0) {
+          e.patrolTarget.set(Math.random()*16-8, e.cfg.size, Math.random()*16-8);
+          e.patrolTimer = 2+Math.random()*2;
+        }
+        const pd = e.patrolTarget.clone().sub(e.pos).normalize();
+        e.vel.x += pd.x * e.cfg.speed * 7 * dt;
+        e.vel.z += pd.z * e.cfg.speed * 7 * dt;
+      }
+    }
+
+    const es = Math.sqrt(e.vel.x**2+e.vel.z**2);
+    const maxEs = e.cfg.speed * 2.8;
+    if (es > maxEs) { e.vel.x *= maxEs/es; e.vel.z *= maxEs/es; }
+
+    e.pos.x += e.vel.x * dt;
+    e.pos.z += e.vel.z * dt;
+    const eb = HALF - e.cfg.size;
+    if (e.pos.x >  eb) { e.pos.x =  eb; e.vel.x *= -0.5; }
+    if (e.pos.x < -eb) { e.pos.x = -eb; e.vel.x *= -0.5; }
+    if (e.pos.z >  eb) { e.pos.z =  eb; e.vel.z *= -0.5; }
+    if (e.pos.z < -eb) { e.pos.z = -eb; e.vel.z *= -0.5; }
+
+    e.mesh.position.copy(e.pos);
+    e.mesh.rotation.y += dt * 1.2;
+
+    // Health bar scale
+    const hpPct = e.hp / e.maxHp;
+    e.barFg.scale.x = hpPct;
+    e.barFg.position.x = -(1-hpPct)*0.5;
+    e.barFg.material.color.setHex(hpPct > 0.5 ? 0x4ade80 : hpPct > 0.25 ? 0xfbbf24 : 0xef4444);
+
+    // Player ↔ Enemy collision
+    const collDist = 0.6 + e.cfg.size;
+    const diff = player.pos.clone().sub(e.pos);
+    const d = diff.length();
+    if (d < collDist) {
+      const pSpd = player.vel.length();
+      if (pSpd > 1.5) {
+        const dir = diff.normalize();
+        let dmg = player.damage;
+        let kb = player.knockback;
+        if (player.armor) {
+          if (player.armor.type==='SPIKE')   { dmg=Math.round(dmg*2.0); kb*=0.5; }
+          if (player.armor.type==='SHIELD')  { dmg=Math.round(dmg*0.5); kb*=3.0; }
+          if (player.armor.type==='PHANTOM') { dmg=Math.round(e.maxHp*0.20); }
+        }
+        e.hp -= dmg;
+        e.vel.x = dir.x*kb; e.vel.z = dir.z*kb;
+        e.stunTimer = 0.45;
+        const origCol = e.cfg.color;
+        e.mat.color.setHex(0xffffff);
+        setTimeout(() => { if(e.alive) e.mat.color.setHex(origCol); }, 130);
+        spawnDmgPopup(e.pos, dmg, player.armor?.type);
+        player.vel.x -= dir.x*2.5; player.vel.z -= dir.z*2.5;
+        score += dmg; scoreVal.textContent = score;
+        if (e.hp <= 0) killEnemy(e);
+      } else if (player.iframes <= 0) {
+        const dir = diff.normalize();
+        player.vel.x += dir.x*3; player.vel.z += dir.z*3;
+        takeDamage(e.cfg.dmg);
+      }
+    }
+  });
+
+  // ── Pickups
+  pickups.forEach(p => {
+    if (p.collected) return;
+    p.t += dt;
+    p.mesh.position.y = 0.9 + Math.sin(p.t*2)*0.18;
+    p.mesh.rotation.y += dt*2.5;
+    p.mesh.rotation.x += dt*1.2;
+    const d = player.pos.distanceTo(new THREE.Vector3(p.pos.x, player.pos.y, p.pos.z));
+    if (d < 1.3) {
+      p.collected = true;
+      equipArmor(p.armorIdx);
+      boardGroup.remove(p.mesh);
+    }
+  });
+
+  // ── Maze: fall detection + goal check
+  if (isMazeLevel) {
+    const mz = MAZE_LEVELS[ROOM_CFGS[currentRoom].mazeIdx];
+    // Work out which grid cell the player is in
+    const col = Math.round((player.pos.x - mz._originX) / CELL);
+    const row = Math.round((player.pos.z - mz._originZ) / CELL);
+    const cellKey = `${col},${row}`;
+    const onFloor = mz._floorCells && mz._floorCells.has(cellKey);
+    const falling = !onFloor;
+
+    if (falling && !player.dead && !roomClearing) {
+      player.hp = Math.max(0, player.hp - 25);
+      updateHealthUI();
+      if (player.hp <= 0) { playerDie(); return; }
+      player.pos.set(mz._startWX, 0.6, mz._startWZ);
+      player.vel.set(0, 0, 0);
+      tiltX = 0; tiltZ = 0;
+      boardGroup.rotation.set(0, 0, 0);
+      showNotification('Fell into the void! -25 HP');
+    }
+
+    // Goal reached
+    if (mazeGoal && !roomClearing) {
+      const dx = player.pos.x - mz._goalWX;
+      const dz = player.pos.z - mz._goalWZ;
+      if (Math.sqrt(dx*dx + dz*dz) < CELL * 0.7) {
+        roomClearing = true;
+        mazeGoal.material.emissiveIntensity = 3;
+        score += 200; scoreVal.textContent = score;
+        showNotification('Maze cleared! +200 pts');
+        setTimeout(() => {
+          currentRoom++;
+          if (currentRoom >= ROOM_CFGS.length) showVictory();
+          else loadRoom(currentRoom);
+        }, 1200);
+      }
+    }
+    if (mazeGoal) mazeGoal.rotation.y += dt * 2.5;
+    return;
+  }
+
+  // ── Room clear check (combat only)
+  const aliveCount = enemies.filter(e => e.alive).length;
+  if (aliveCount === 0 && enemies.length > 0 && !roomClearing) {
+    roomClearing = true;
+    setTimeout(() => {
+      currentRoom++;
+      if (currentRoom >= ROOM_CFGS.length) showVictory();
+      else loadRoom(currentRoom);
+    }, 1400);
+  }
+}
+
+// ── COMBAT HELPERS ───────────────────────────────────────────────────────────
+function killEnemy(e) {
+  e.alive = false;
+  boardGroup.remove(e.mesh);
+  score += 50; scoreVal.textContent = score;
+  spawnParticles(e.pos, e.cfg.color);
+}
+
+function takeDamage(amount) {
+  if (player.iframes > 0 || player.dead) return;
+  player.hp = Math.max(0, player.hp - amount);
+  player.iframes = 0.9;
+  updateHealthUI();
+  if (player.hp <= 0) playerDie();
+}
+
+function spawnParticles(pos, color) {
+  for (let i=0; i<8; i++) {
+    const pm = new THREE.MeshBasicMaterial({ color, transparent:true, opacity:1 });
+    const pp = new THREE.Mesh(new THREE.SphereGeometry(0.1,4,4), pm);
+    pp.position.copy(pos);
+    boardGroup.add(pp);
+    const vel = { x:(Math.random()-.5)*8, y:Math.random()*2, z:(Math.random()-.5)*8 };
+    let life = 0.6;
+    const step = () => {
+      life -= 0.016;
+      pp.position.x += vel.x*0.016;
+      pp.position.z += vel.z*0.016;
+      pp.position.y += vel.y*0.016;
+      vel.y -= 0.4;
+      pm.opacity = life/0.6;
+      if (life > 0) requestAnimationFrame(step);
+      else boardGroup.remove(pp);
+    };
+    requestAnimationFrame(step);
+  }
+}
+
+function spawnDmgPopup(worldPos, dmg, aType) {
+  const sp = worldPos.clone().project(camera);
+  const x = (sp.x*0.5+0.5)*window.innerWidth;
+  const y = (-sp.y*0.5+0.5)*window.innerHeight;
+  const col = aType==='PHANTOM'?'#a855f7':aType==='SPIKE'?'#f97316':aType==='SHIELD'?'#3b82f6':'#fff';
+  const el = document.createElement('div');
+  el.style.cssText = `position:absolute;left:${x}px;top:${y}px;color:${col};font-size:${dmg>=20?'20px':'14px'};font-weight:bold;font-family:'Courier New',monospace;pointer-events:none;text-shadow:0 1px 4px rgba(0,0,0,0.9);`;
+  el.textContent = '-' + dmg;
+  dmgContainer.appendChild(el);
+  let vy=-2, life=0.7;
+  const anim=()=>{ life-=0.016; el.style.top=(parseFloat(el.style.top)+vy)+'px'; el.style.opacity=life/0.7; vy*=0.96; if(life>0)requestAnimationFrame(anim); else el.remove(); };
+  requestAnimationFrame(anim);
+}
+
+function updateHealthUI() {
+  const pct = player.hp / player.maxHp;
+  healthFill.style.width = (pct*100)+'%';
+  healthFill.style.background = pct>0.5?'#4ade80':pct>0.25?'#fbbf24':'#ef4444';
+  healthText.textContent = player.hp+' / '+player.maxHp;
+}
+
+function equipArmor(idx) {
+  const a = ARMOR_TYPES[idx];
+  player.armor = a;
+  playerMat.color.setHex(a.ballColor);
+  glowLight.color.setHex(a.ballColor);
+  armorPanel.style.display = 'block';
+  armorName.textContent = a.name;
+  armorType.textContent = a.type;
+  armorType.style.background = a.typeColor+'33';
+  armorType.style.color = a.typeColor;
+  showNotification('⚔ Equipped: '+a.name+'\nAttack: '+a.type);
+}
+
+function showBanner(text) {
+  roomBanner.textContent = text;
+  roomBanner.style.opacity = '1';
+  clearTimeout(roomBanner._t);
+  roomBanner._t = setTimeout(()=>{ roomBanner.style.opacity='0'; }, 2000);
+}
+
+function showNotification(msg) {
+  notification.textContent = msg;
+  notification.style.display = 'block';
+  clearTimeout(notification._t);
+  notification._t = setTimeout(()=>{ notification.style.display='none'; }, 2800);
+}
+
+function playerDie() {
+  player.dead = true;
+  gameActive = false;
+  setTimeout(()=>{
+    overlay.style.display='flex';
+    overlay.innerHTML=`<h1 style="color:#ef4444">YOU DIED</h1><p>Score: <span style="color:#fbbf24;font-size:20px">${score}</span></p><p style="color:#666;margin-top:8px">The dungeon claims another soul...</p><button class="start-btn" onclick="restartGame()">↺ TRY AGAIN</button>`;
+  }, 900);
+}
+
+function showVictory() {
+  gameActive = false;
+  setTimeout(()=>{
+    overlay.style.display='flex';
+    overlay.innerHTML=`<h1 style="color:#4ade80">VICTORY!</h1><p>All 5 rooms cleared!</p><p>Final Score: <span style="color:#fbbf24;font-size:22px">${score}</span></p><button class="start-btn" onclick="restartGame()">▶ PLAY AGAIN</button>`;
+  }, 600);
+}
+
+function startGame() {
+  overlay.style.display = 'none';
+  score = 0; currentRoom = 0; roomClearing = false;
+  player.hp = player.maxHp; player.dead = false;
+  player.armor = null; player.vel.set(0,0,0);
+  playerMat.color.setHex(0x60a5fa);
+  glowLight.color.setHex(0x60a5fa);
+  armorPanel.style.display = 'none';
+  scoreVal.textContent = '0';
+  updateHealthUI();
+  loadRoom(0);
+  gameActive = true;
+}
+
+function restartGame() { startGame(); }
+
+document.getElementById('start-btn').addEventListener('click', startGame);
+
+// ── PHYSICS SLIDERS
+(function() {
+  const slAccel   = document.getElementById('sl-accel');
+  const slSpeed   = document.getElementById('sl-speed');
+  const slFriction= document.getElementById('sl-friction');
+  const lblAccel  = document.getElementById('lbl-accel');
+  const lblSpeed  = document.getElementById('lbl-speed');
+  const lblFriction=document.getElementById('lbl-friction');
+  window.ACCEL   = 70;
+  window.MAX_SPD = 22;
+  window.FRICTION= 0.985;
+  slAccel.addEventListener('input', () => { window.ACCEL = +slAccel.value; lblAccel.textContent = slAccel.value; });
+  slSpeed.addEventListener('input', () => { window.MAX_SPD = +slSpeed.value; lblSpeed.textContent = slSpeed.value; });
+  slFriction.addEventListener('input', () => { window.FRICTION = slFriction.value/1000; lblFriction.textContent = '.'+slFriction.value.slice(1); });
+})();
+
+// ── RENDER LOOP ───────────────────────────────────────────────────────────────
+let last = performance.now();
+(function loop() {
+  requestAnimationFrame(loop);
+  const now = performance.now();
+  const dt = Math.min((now-last)/1000, 0.05);
+  last = now;
+  update(dt);
+  renderer.render(scene, camera);
+})();
+</script>
+</body>
+</html>
