@@ -31,11 +31,29 @@
 
   body{
     margin:0;
-    background:var(--blueprint);
+    background-color:var(--blueprint);
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 40px 40px;
+    background-attachment: fixed;
     color:var(--paper);
     font-family:'IBM Plex Sans', sans-serif;
     line-height:1.55;
   }
+
+  .bg-motifs{
+    position:fixed; inset:0; z-index:0;
+    pointer-events:none; overflow:hidden;
+  }
+  .bg-motifs svg{ position:absolute; opacity:0.07; }
+  .bg-motifs svg.m1{ top:8%; left:3%; width:150px; height:150px; }
+  .bg-motifs svg.m2{ top:58%; right:5%; width:130px; height:130px; }
+  .bg-motifs svg.m3{ bottom:6%; left:8%; width:110px; height:110px; }
+  .bg-motifs svg.m4{ top:22%; right:14%; width:90px; height:90px; }
+  @media (max-width:800px){ .bg-motifs svg{ display:none; } }
+
+  header, main, footer{ position:relative; z-index:1; }
 
   a{ color:var(--amber); }
   a:focus-visible, button:focus-visible{ outline:2px solid var(--amber); outline-offset:3px; }
@@ -150,6 +168,11 @@
   .card::before{ top:8px; left:8px; border-top:2px solid; border-left:2px solid; }
   .card::after{ bottom:8px; right:8px; border-bottom:2px solid; border-right:2px solid; }
 
+  .card-image{
+    width:100%; aspect-ratio:16/9; object-fit:cover;
+    border:1px solid var(--grid-line-strong); border-radius:var(--radius);
+    margin-bottom:18px; background:var(--blueprint-deep);
+  }
   .card h3{ font-family:'Big Shoulders Display', sans-serif; font-weight:800; font-size:1.5rem; margin:0 0 10px; letter-spacing:0.2px; }
   .card p{ color:var(--paper-dim); font-size:0.95rem; margin:0 0 18px; flex-grow:1; }
   .tag-row{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px; }
@@ -200,14 +223,57 @@
 </head>
 <body>
 
+<div class="bg-motifs" aria-hidden="true">
+  <!-- gamepad -->
+  <svg class="m1" viewBox="0 0 120 80" fill="none" stroke="#f2efe6" stroke-width="1.5">
+    <path d="M25 25 h70 a20 20 0 0 1 20 20 v5 a15 15 0 0 1 -15 15 a12 12 0 0 1 -10 -5 l-8 -10 h-44 l-8 10 a12 12 0 0 1 -10 5 a15 15 0 0 1 -15 -15 v-5 a20 20 0 0 1 20 -20 z"/>
+    <line x1="40" y1="40" x2="40" y2="52"/>
+    <line x1="34" y1="46" x2="46" y2="46"/>
+    <circle cx="85" cy="42" r="3.5"/>
+    <circle cx="95" cy="50" r="3.5"/>
+  </svg>
+
+  <!-- joystick -->
+  <svg class="m2" viewBox="0 0 100 120" fill="none" stroke="#f2a93b" stroke-width="1.5">
+    <ellipse cx="50" cy="100" rx="35" ry="12"/>
+    <line x1="50" y1="88" x2="50" y2="35"/>
+    <circle cx="50" cy="22" r="14"/>
+    <circle cx="30" cy="95" r="4"/>
+    <circle cx="70" cy="95" r="4"/>
+  </svg>
+
+  <!-- d20 die -->
+  <svg class="m3" viewBox="0 0 100 100" fill="none" stroke="#f2efe6" stroke-width="1.5">
+    <polygon points="50,5 90,28 90,72 50,95 10,72 10,28"/>
+    <line x1="50" y1="5" x2="50" y2="95"/>
+    <line x1="10" y1="28" x2="50" y2="50"/>
+    <line x1="90" y1="28" x2="50" y2="50"/>
+    <line x1="10" y1="72" x2="50" y2="50"/>
+    <line x1="90" y1="72" x2="50" y2="50"/>
+  </svg>
+
+  <!-- pixel heart -->
+  <svg class="m4" viewBox="0 0 90 80" fill="#e8615a" stroke="none">
+    <rect x="10" y="10" width="20" height="20"/>
+    <rect x="60" y="10" width="20" height="20"/>
+    <rect x="0" y="30" width="20" height="20"/>
+    <rect x="30" y="30" width="20" height="20"/>
+    <rect x="60" y="30" width="20" height="20"/>
+    <rect x="20" y="50" width="20" height="20"/>
+    <rect x="50" y="50" width="20" height="20"/>
+    <rect x="35" y="65" width="20" height="15"/>
+  </svg>
+</div>
+
 <header>
   <div class="header-inner">
-    <a class="brand" href="#top">Dzung Nguyen <span>/ Playable Prototypes</span></a>
+    <a class="brand" href="#top">Dzung Nguyen <span>/ Game Designer & Developer</span></a>
     <nav>
       <ul>
         <li><a href="#work">Prototypes</a></li>
         <li><a href="#about">About</a></li>
         <li><a href="#contact">Contact</a></li>
+        <li><a href="files/resume.pdf" target="_blank" rel="noopener">Resume</a></li>
       </ul>
     </nav>
   </div>
@@ -248,8 +314,8 @@
     <div class="wrap about-body">
       <span class="section-tag">ABOUT</span>
       <h2>About</h2>
-      <p><em>[Edit this paragraph — a couple sentences on who you are, what kind of games you like to build, and how Claude fits into your process.]</em></p>
-      <p class="edit-hint">← replace this text in the &lt;section id="about"&gt; block</p>
+      <p><em>Hi, my name is Dzung. I'm a game designer and developer. This website includes a collection of prototypes I've designed, then developed via Claude. I've worked in the game industry for 15 years in various areas including but not limited to: Game Design, Publishing Support, Game Programming, and Management.</em></p>
+      <p><a href="files/resume.pdf" target="_blank" rel="noopener" class="btn btn-ghost">View my resume</a></p>
     </div>
   </section>
 
@@ -257,14 +323,14 @@
     <div class="wrap">
       <h2>Let's talk</h2>
       <p>Open to collaborations, feedback, and conversations about games.</p>
-      <a href="mailto:you@example.com" class="btn btn-primary">you@example.com</a>
+      <a href="mailto:you@example.com" class="btn btn-primary">dzungnguyen17@gmail.com</a>
     </div>
   </section>
 
 </main>
 
 <footer>
-  DZ — PROTOTYPE LAB · BUILT ONE PROJECT AT A TIME
+  Dzung Nguyen - Personal Website
 </footer>
 
 <div class="modal-overlay" id="modal-overlay">
@@ -289,6 +355,11 @@
        title       — project name (required)
        description — one or two sentence pitch (required)
        tags        — short list of labels, e.g. engine/genre/status
+       image       — path to a screenshot/gif for the card, e.g.
+                     "images/tennis-defense.png". Place the image
+                     file in an "images/" folder next to this page.
+                     Leave this out (or leave the file missing) and
+                     the card simply shows no image — no placeholder.
        file        — path to a playable single-file HTML build,
                      placed in the same folder as this page (or a
                      subfolder like "projects/your-game.html").
@@ -306,42 +377,49 @@
       title: "Tennis Defense",
       description: "Tower defense game taking place on a tennis court with roguelite upgrades and various enemies. Currently working on a Unity version with more content, improved design, and more features",
       tags: ["Browser", "Arcade"],
+      image: "images/tennis-defense.png",
       file: "projects/tennis-defense.html"
     },
     {
       title: "Merge Armada",
       description: "Shoot'em Up style merge game. Merge ships to create stronger ones and defeat incoming alien ships.",
       tags: ["Browser", "Puzzle/Arcade"],
+      image: "images/merge-armada.png",
       file: "projects/merge-armada.html"
     },
     {
       title: "Match Runes",
       description: "Slide rows and columns to match-3 and defeat enemies.",
       tags: ["Browser", "Puzzle"],
+      image: "images/match-runes.png",
       file: "projects/match-runes.html"
     },
     {
       title: "Tilt Dungeon",
       description: "Tilt the map to move your character and defeat enemies and traverse the dungeon.",
       tags: ["Browser", "Arcade"],
+      image: "images/tilt-dungeon.png",
       file: "projects/tilt-dungeon.html"
     },
     {
       title: "Planetary Alignment",
       description: "Align planets by stopping their rotation.",
       tags: ["Browser", "Puzzle"],
+      image: "images/syzygy.png",
       link: "projects/syzygy.html"
     },
     {
       title: "Pop Bubbles",
       description: "A simple bubble popping game to entertain my son",
       tags: ["Browser", "Arcade"],
+      image: "images/bubble-pop.png",
       link: "projects/bubble-pop.html"
     },
     {
       title: "Farm Match",
       description: "Match farm animals.",
       tags: ["Browser", "Puzzle"],
+      image: "images/farm-match.png",
       link: "projects/farm-match.html"
     }
   ];
@@ -375,7 +453,12 @@
         actionsHtml = `<a class="btn btn-ghost" href="${p.link}" target="_blank" rel="noopener">View project</a>`;
       }
 
+      const imageHtml = p.image
+        ? `<img class="card-image" src="${p.image}" alt="${p.title} screenshot" onerror="this.remove();">`
+        : '';
+
       card.innerHTML = `
+        ${imageHtml}
         <h3>${p.title}</h3>
         <p>${p.description}</p>
         <div class="tag-row">${tagsHtml}</div>
