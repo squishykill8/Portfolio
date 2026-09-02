@@ -148,8 +148,9 @@
   .section-head p{ color:var(--paper-dim); margin:0; }
 
   /* ---- Project grid (rendered by JS) ---- */
-  .project-grid{ display:grid; grid-template-columns:repeat(2, 1fr); gap:24px; }
-  @media (max-width:800px){ .project-grid{ grid-template-columns:1fr; } }
+  .project-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:24px; }
+  @media (max-width:900px){ .project-grid{ grid-template-columns:repeat(2, 1fr); } }
+  @media (max-width:560px){ .project-grid{ grid-template-columns:1fr; } }
 
   .card{
     position:relative;
@@ -169,7 +170,7 @@
   .card::after{ bottom:8px; right:8px; border-bottom:2px solid; border-right:2px solid; }
 
   .card-image{
-    width:100%; aspect-ratio:16/9; object-fit:cover;
+    width:100%; aspect-ratio:1/1; object-fit:cover;
     border:1px solid var(--grid-line-strong); border-radius:var(--radius);
     margin-bottom:18px; background:var(--blueprint-deep);
   }
@@ -300,8 +301,8 @@
     <div class="wrap">
       <div class="section-head">
         <span class="section-tag">PROJECTS</span>
-        <h2>The gallery</h2>
-        <p>Click "Play" on any project to try it right here. Everything below is generated from the list at the bottom of this file — add an entry there and it shows up here automatically.</p>
+        <h2>AI-generated Projects</h2>
+        <p>Click "Play" on any project to try it right here.</p>
       </div>
 
       <div class="project-grid" id="project-grid">
@@ -388,11 +389,11 @@
       file: "projects/merge-armada.html"
     },
     {
-      title: "Match Runes",
+      title: "Rune Match",
       description: "Slide rows and columns to match-3 and defeat enemies.",
       tags: ["Browser", "Puzzle"],
-      image: "images/match-runes.png",
-      file: "projects/match-runes.html"
+      image: "images/rune-match.png",
+      file: "projects/rune-match.html"
     },
     {
       title: "Tilt Dungeon",
@@ -406,21 +407,21 @@
       description: "Align planets by stopping their rotation.",
       tags: ["Browser", "Puzzle"],
       image: "images/syzygy.png",
-      link: "projects/syzygy.html"
+      file: "projects/syzygy.html"
     },
     {
       title: "Pop Bubbles",
       description: "A simple bubble popping game to entertain my son",
       tags: ["Browser", "Arcade"],
       image: "images/bubble-pop.png",
-      link: "projects/bubble-pop.html"
+      file: "projects/bubble-pop.html"
     },
     {
       title: "Farm Match",
       description: "Match farm animals.",
       tags: ["Browser", "Puzzle"],
       image: "images/farm-match.png",
-      link: "projects/farm-match.html"
+      file: "projects/farm-match.html"
     }
   ];
 
