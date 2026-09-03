@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Picture Golf — Rotate the Fairway Into Place</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sky-top:#1b3a4b;
+    --sky-bot:#2d5a4a;
+    --rough:#2f6b3f;
+    --rough-dark:#265a34;
+    --fairway:#7cc061;
+    --fairway-dark:#69a852;
+    --sand:#d9b46a;
+    --cream:#f6ead0;
+    --ink:#173425;
+    --flag-red:#d1523a;
+    --panel:#ffffff14;
+    --tile-gap:4px;
+    --board-pad:16px;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    min-height:100vh;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    background:
+      radial-gradient(ellipse at 50% -10%, #3a6b5a 0%, transparent 55%),
+      linear-gradient(180deg, var(--sky-top), var(--sky-bot) 60%);
+    font-family:'DM Sans', sans-serif;
+    color:var(--cream);
+    padding:20px 14px 32px;
+  }
+  .wrap{
+    width:100%;
+    max-width:400px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:16px;
+  }
+  .masthead{ text-align:center; }
+  .eyebrow{
+    font-family:'DM Mono', monospace;
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    font-size:11px;
+    color:var(--sand);
+    margin:0 0 4px;
+  }
+  h1{
+    font-family:'Baloo 2', sans-serif;
+    font-weight:800;
+    font-size:clamp(30px,7vw,42px);
+    margin:0;
+    letter-spacing:.01em;
+    text-shadow:0 3px 0 rgba(0,0,0,.18);
+  }
+  .sub{
+    font-size:14px;
+    color:#dce8dd;
+    margin:6px 0 0;
+    max-width:420px;
+    text-align:center;
+  }
+  .streak-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    margin:10px auto 0;
+    background:#ffffff14;
+    border:1px solid #ffffff2a;
+    border-radius:999px;
+    padding:6px 14px;
+    font-family:'DM Mono', monospace;
+    font-size:12px;
+    color:var(--sand);
+    width:fit-content;
+  }
+
+  .scorecard{
+    width:100%;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    background:var(--panel);
+    border:1px solid #ffffff26;
+    border-radius:14px;
+    padding:10px 14px;
+    font-family:'DM Mono', monospace;
+    font-size:13px;
+    gap:6px;
+  }
+  .scorecard .item{display:flex; flex-direction:column; gap:2px; align-items:center;}
+  .scorecard .item span:first-child{color:#c8dccb; font-size:9px; letter-spacing:.1em; text-transform:uppercase; white-space:nowrap;}
+  .scorecard .item span:last-child{font-size:17px; font-weight:500; color:var(--cream);}
+  .holes{display:flex; gap:5px;}
+  .hole-dot{
+    width:9px;height:9px;border-radius:50%;
+    background:#ffffff30;
+    border:1px solid #ffffff40;
+  }
+  .hole-dot.s3{background:#ffd867; border-color:#ffd867;}
+  .hole-dot.s2{background:#cfd7dc; border-color:#cfd7dc;}
+  .hole-dot.s1{background:#c98a55; border-color:#c98a55;}
+  .hole-dot.current{background:var(--sand); border-color:var(--sand); box-shadow:0 0 0 2px #ffffff30;}
+
+  .course{
+    position:relative;
+    background:linear-gradient(180deg, var(--rough), var(--rough-dark));
+    border-radius:20px;
+    padding:var(--board-pad);
+    box-shadow:0 20px 40px -12px rgba(0,0,0,.45), inset 0 0 0 1px #ffffff1a;
+  }
+  .grid{
+    display:grid;
+    gap:var(--tile-gap);
+    position:relative;
+  }
+  .tile{
+    width:var(--tile-size);
+    height:var(--tile-size);
+    cursor:pointer;
+    user-select:none;
+    -webkit-tap-highlight-color:transparent;
+    filter:brightness(1.08);
+    border-radius:calc(var(--tile-size) * 0.16);
+    overflow:hidden;
+  }
+  .tile:hover{filter:brightness(1.2);}
+  .tile:active{filter:brightness(0.96);}
+  .tile.fixed{
+    cursor:default;
+    filter:none;
+  }
+  .tile.fixed:hover{filter:none;}
+  .tile svg{
+    display:block; width:100%; height:100%;
+  }
+  /* Wraps both the background-course-image slice and the fairway-art svg so
+     they rotate together as one unit. transform uses an ever-increasing
+     degree value (not mod 360) so every tap always spins clockwise, even
+     crossing back through 0deg. */
+  .tile-spin{
+    width:100%; height:100%;
+    background-repeat:no-repeat;
+    background-color:var(--rough);
+    transition:transform .22s cubic-bezier(.34,1.1,.4,1);
+  }
+  .tile.shake .tile-spin, .tile.shake svg{animation:shake .28s ease;}
+  @keyframes shake{
+    0%,100%{transform:translateX(0) rotate(var(--r,0deg));}
+    25%{transform:translateX(-4px) rotate(var(--r,0deg));}
+    75%{transform:translateX(4px) rotate(var(--r,0deg));}
+  }
+  .ball{
+    position:absolute;
+    width:calc(var(--tile-size) * 0.36);
+    height:calc(var(--tile-size) * 0.36);
+    left:0; top:0;
+    margin-left:calc(var(--tile-size) * -0.18);
+    margin-top:calc(var(--tile-size) * -0.18);
+    border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #ffffff, #dcdcdc 60%, #b9b9b9);
+    box-shadow:0 3px 5px rgba(0,0,0,.35);
+    transition:left .26s ease-in-out, top .26s ease-in-out, transform .25s ease;
+    pointer-events:none;
+    z-index:5;
+  }
+  .ball.sink{transform:scale(0);}
+
+  .controls{
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+  .reset-btn{
+    font-family:'Baloo 2', sans-serif;
+    font-weight:700;
+    font-size:15px;
+    color:var(--cream);
+    background:#ffffff12;
+    border:1.5px solid #ffffff3a;
+    border-radius:999px;
+    padding:12px 22px;
+    cursor:pointer;
+    transition:background .15s ease, transform .12s ease;
+  }
+  .reset-btn:hover{background:#ffffff1e;}
+  .reset-btn:active{transform:translateY(2px);}
+  .reset-btn:disabled{opacity:.4; cursor:default; transform:none;}
+
+  .message{
+    min-height:20px;
+    font-size:14px;
+    text-align:center;
+    color:var(--cream);
+    font-weight:500;
+  }
+  .message.win{color:#bdf5c1;}
+  .message.fail{color:#ffd0c4;}
+
+  .overlay{
+    position:fixed; inset:0;
+    background:rgba(10,20,15,.72);
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; pointer-events:none;
+    transition:opacity .3s ease;
+    z-index:50;
+  }
+  .overlay.show{opacity:1; pointer-events:auto;}
+  .overlay-card{
+    background:var(--cream);
+    color:var(--ink);
+    border-radius:18px;
+    padding:32px 34px;
+    text-align:center;
+    max-width:340px;
+    box-shadow:0 20px 50px rgba(0,0,0,.4);
+    transform:translateY(14px) scale(.96);
+    transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+  }
+  .overlay.show .overlay-card{transform:translateY(0) scale(1);}
+  .overlay-card h2{
+    font-family:'Baloo 2', sans-serif;
+    font-size:26px;
+    margin:0 0 8px;
+  }
+  .star-row{
+    font-size:34px;
+    letter-spacing:6px;
+    margin:0 0 10px;
+    color:#d9b46a;
+  }
+  .star-row .empty{color:#e3d8bd;}
+  .overlay-card p{margin:0 0 20px; font-size:14px; color:#3f5c48;}
+  .overlay-card button{
+    font-family:'Baloo 2', sans-serif;
+    font-weight:700;
+    font-size:16px;
+    color:#fff;
+    background:var(--fairway-dark);
+    border:none;
+    border-radius:999px;
+    padding:11px 28px;
+    cursor:pointer;
+    box-shadow:0 5px 0 #4d7d3c;
+  }
+  .overlay-card button:active{transform:translateY(3px); box-shadow:0 2px 0 #4d7d3c;}
+
+  footer{
+    font-family:'DM Mono', monospace;
+    font-size:11px;
+    color:#c8dccb;
+    text-align:center;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="masthead">
+    <p class="eyebrow" id="eyebrow">Daily Challenge</p>
+    <h1>Picture Golf</h1>
+    <p class="sub">Every tile is already in place — but rotated wrong. Tap a tile to spin it 90° clockwise. Get every piece facing the right way and the fairway completes itself: the ball rolls in on its own.</p>
+    <div class="streak-badge" id="streakBadge" style="display:none;">
+      <span id="streakFlame">🔥</span> <span id="streakText">0 day streak</span>
+    </div>
+  </div>
+
+  <div class="scorecard">
+    <div class="item"><span>Hole</span><span id="holeNum">1 / 6</span></div>
+    <div class="holes" id="holeDots"></div>
+    <div class="item"><span>Par</span><span id="parCount">–</span></div>
+    <div class="item"><span>Spins</span><span id="tapCount">0</span></div>
+  </div>
+
+  <div class="course">
+    <div class="grid" id="grid"></div>
+    <div class="ball" id="ball"></div>
+  </div>
+
+  <div class="controls">
+    <button class="reset-btn" id="resetBtn">↺ Reset Hole</button>
+  </div>
+  <div class="message" id="message">Tap tiles to rotate them clockwise.</div>
+</div>
+
+<footer>Straight fairway pieces look identical 180° apart — trace the path, don't just eyeball it.</footer>
+
+<div class="overlay" id="overlay">
+  <div class="overlay-card">
+    <div class="star-row" id="starRow">★★★</div>
+    <h2 id="overlayTitle">Nice putt!</h2>
+    <p id="overlayText">Hole complete.</p>
+    <button id="overlayBtn">Next Hole</button>
+  </div>
+</div>
+
+<script>
+const N=0,E=1,S=2,W=3;
+const VEC=[[-1,0],[0,1],[1,0],[0,-1]];
+const opposite=d=>(d+2)%4;
+const rotDir=(d,k)=>(d+k)%4;
+
+// ---------- daily seed + streak ----------
+
+// Standard mulberry32 PRNG — deterministic stream of [0,1) floats from an
+// integer seed, so the same seed always produces the same sequence of
+// puzzle-generation decisions.
+function mulberry32(seed){
+  return function(){
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function seedFromString(str){
+  let h=0;
+  for(let i=0;i<str.length;i++) h = (Math.imul(31,h) + str.charCodeAt(i)) | 0;
+  return h>>>0;
+}
+function dateStr(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function todayStr(){ return dateStr(new Date()); }
+function shiftDateStr(str, deltaDays){
+  const [y,m,d]=str.split('-').map(Number);
+  const dt=new Date(y, m-1, d);
+  dt.setDate(dt.getDate()+deltaDays);
+  return dateStr(dt);
+}
+
+// Swappable random source: seeded (mulberry32) for the daily challenge,
+// plain Math.random for practice rounds. Every generation call in this
+// file goes through rand() so swapping the source is all that's needed.
+let rand = Math.random;
+let dailyMode = true;
+
+const STREAK_KEY='pictureGolf.streak';
+const BEST_KEY='pictureGolf.bestStreak';
+const LAST_DONE_KEY='pictureGolf.lastCompletedDate';
+
+function loadStreakState(){
+  return {
+    streak: parseInt(localStorage.getItem(STREAK_KEY)||'0', 10),
+    best: parseInt(localStorage.getItem(BEST_KEY)||'0', 10),
+    lastDone: localStorage.getItem(LAST_DONE_KEY)
+  };
+}
+
+// Called once, the moment a player finishes hole 6 of the actual daily
+// challenge (not a practice replay).
+function recordDailyCompletion(){
+  const today=todayStr();
+  const yesterday=shiftDateStr(today,-1);
+  const state=loadStreakState();
+  let streak;
+  if(state.lastDone===today) streak=state.streak;          // already counted today
+  else if(state.lastDone===yesterday) streak=state.streak+1; // extends the streak
+  else streak=1;                                             // gap, or first ever
+  const best=Math.max(streak, state.best);
+  localStorage.setItem(STREAK_KEY, String(streak));
+  localStorage.setItem(BEST_KEY, String(best));
+  localStorage.setItem(LAST_DONE_KEY, today);
+  return {streak, best, isNewToday: state.lastDone!==today};
+}
+
+function dirBetween(a,b){
+  const dr=b[0]-a[0], dc=b[1]-a[1];
+  if(dr===-1 && dc===0) return N;
+  if(dr===0 && dc===1) return E;
+  if(dr===1 && dc===0) return S;
+  if(dr===0 && dc===-1) return W;
+  return null;
+}
+
+function setsEqual(a,b){
+  if(a.length!==b.length) return false;
+  const sa=[...a].sort(), sb=[...b].sort();
+  return sa.every((v,i)=>v===sb[i]);
+}
+
+// Grid size, entry point, and entry direction vary per hole.
+let ROWS, COLS, entryDir, startCell, holeCell;
+
+const LEVELS=[
+  { rows:3, cols:3, entryDir:S, path:[[0,1],[1,1],[1,2],[2,2]], decoyChance:0.5, slack:0.6 },
+  { rows:3, cols:3, entryDir:E, path:[[1,0],[1,1],[0,1],[0,2]], decoyChance:0.55, slack:0.55 },
+  { rows:3, cols:3, entryDir:N, path:[[2,0],[1,0],[1,1],[0,1],[0,2]], decoyChance:0.6, slack:0.5 },
+  { rows:4, cols:3, entryDir:S, path:[[0,1],[1,1],[2,1],[2,2],[3,2]], decoyChance:0.68, slack:0.45 },
+  { rows:4, cols:3, entryDir:E, path:[[1,0],[1,1],[0,1],[0,2],[1,2],[2,2]], decoyChance:0.75, slack:0.4 },
+  { rows:4, cols:3, entryDir:N, path:[[3,0],[2,0],[2,1],[1,1],[1,2],[0,2],[0,1]], decoyChance:0.8, slack:0.4 },
+  // Bonus holes: bigger boards, longer winding paths, denser decoys, and
+  // less slack before you drop out of 3-star range.
+  { rows:4, cols:4, entryDir:S, path:[[0,1],[1,1],[1,0],[2,0],[2,1],[2,2],[3,2],[3,3],[2,3],[1,3]], decoyChance:0.85, slack:0.32 },
+  { rows:4, cols:5, entryDir:E, path:[[1,0],[1,1],[0,1],[0,2],[1,2],[2,2],[2,1],[3,1],[3,2],[3,3],[2,3],[2,4],[1,4]], decoyChance:0.9, slack:0.28 },
+];
+
+// Fallback decoy chance if a level doesn't specify one, and the default
+// star-tolerance multiplier (see starsFor).
+const DECOY_CHANCE=0.7;
+const DEFAULT_SLACK=0.5;
+
+let levelIndex=0;
+let grid=[];
+let tapsThisHole=0;
+let totalStars=0;
+let holeStars=[]; // stars earned per completed hole
+let busy=false;
+let ballCell=null;
+let PAR=0;
+let currentSlack=DEFAULT_SLACK;
+let tileDivs=[];
+let spinEls=[];
+let initialSnapshot=null;
+let masterBgUrl='';
+
+const gridEl=document.getElementById('grid');
+const ballEl=document.getElementById('ball');
+const resetBtn=document.getElementById('resetBtn');
+const messageEl=document.getElementById('message');
+const holeNumEl=document.getElementById('holeNum');
+const parCountEl=document.getElementById('parCount');
+const tapCountEl=document.getElementById('tapCount');
+const holeDotsEl=document.getElementById('holeDots');
+const overlay=document.getElementById('overlay');
+const overlayTitle=document.getElementById('overlayTitle');
+const overlayText=document.getElementById('overlayText');
+const overlayBtn=document.getElementById('overlayBtn');
+const starRowEl=document.getElementById('starRow');
+const eyebrowEl=document.getElementById('eyebrow');
+const streakBadge=document.getElementById('streakBadge');
+const streakText=document.getElementById('streakText');
+
+let TILE=52;
+const GAP=4, PAD=16;
+
+// ---------- tile construction ----------
+
+function makePathTile(reqA, reqB){
+  const straight = (reqA - reqB + 4)%4 === 2;
+  const kind = straight ? 'straight' : 'corner';
+  const base = straight ? [N,S] : [N,E];
+  const validKs=[];
+  for(let k=0;k<4;k++){
+    const rotated = base.map(d=>rotDir(d,k));
+    if(setsEqual(rotated, [reqA,reqB])) validKs.push(k);
+  }
+  const candidates=[0,1,2,3].filter(k=>!validKs.includes(k));
+  const start = candidates[Math.floor(rand()*candidates.length)];
+  const par = Math.min(...validKs.map(k=>(k-start+4)%4));
+  return {type:'open', kind, rotation:start, spinDeg:start*90, isPath:true, par};
+}
+
+function makeHoleTile(reqDir){
+  const start = [0,1,2,3].filter(k=>k!==reqDir)[Math.floor(rand()*3)];
+  const par = (reqDir-start+4)%4;
+  return {type:'open', kind:'hole', rotation:start, spinDeg:start*90, isPath:true, par};
+}
+
+function makeDecoyTile(){
+  const kind = rand()<0.5 ? 'straight':'corner';
+  const rotation = Math.floor(rand()*4);
+  return {type:'open', kind, rotation, spinDeg:rotation*90, isPath:false, par:0};
+}
+
+function connections(tile){
+  if(!tile || tile.type==='water') return [];
+  if(tile.kind==='hole') return [rotDir(N, tile.rotation)];
+  if(tile.kind==='straight') return [rotDir(N,tile.rotation), rotDir(S,tile.rotation)];
+  return [rotDir(N,tile.rotation), rotDir(E,tile.rotation)]; // corner
+}
+
+function buildLevel(li){
+  const level=LEVELS[li];
+  const path=level.path;
+  ROWS=level.rows; COLS=level.cols; entryDir=level.entryDir;
+  startCell=path[0];
+  holeCell=path[path.length-1];
+
+  const g=[];
+  for(let r=0;r<ROWS;r++) g.push(new Array(COLS).fill(null));
+
+  let par=0;
+  for(let i=0;i<path.length;i++){
+    const [r,c]=path[i];
+    if(i===path.length-1){
+      const travelIn=dirBetween(path[i-1],path[i]);
+      const tile=makeHoleTile(opposite(travelIn));
+      g[r][c]=tile; par+=tile.par;
+    } else {
+      const travelIn = i===0 ? entryDir : dirBetween(path[i-1],path[i]);
+      const dOut=dirBetween(path[i],path[i+1]);
+      const tile=makePathTile(opposite(travelIn), dOut);
+      g[r][c]=tile; par+=tile.par;
+    }
+  }
+
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      if(g[r][c]) continue;
+      g[r][c] = rand()<(level.decoyChance ?? DECOY_CHANCE) ? makeDecoyTile() : {type:'water'};
+    }
+  }
+  currentSlack = level.slack ?? DEFAULT_SLACK;
+
+  grid=g;
+  PAR=par;
+  masterBgUrl=buildMasterBackground(ROWS, COLS);
+}
+
+// ---------- rendering ----------
+
+function tileArt(tile, uid){
+  if(tile.type==='water'){
+    return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="water-${uid}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="100" y2="100">
+          <stop offset="0" stop-color="#3f7ea6"/>
+          <stop offset="1" stop-color="#28516c"/>
+        </linearGradient>
+      </defs>
+      <rect x="2" y="2" width="96" height="96" rx="16" fill="url(#water-${uid})"/>
+      <path d="M8,32 Q22,25 36,32 T64,32 T92,32" stroke="#7ec3e6" stroke-width="3" fill="none" opacity="0.5" stroke-linecap="round"/>
+      <path d="M0,58 Q14,51 28,58 T56,58 T84,58" stroke="#7ec3e6" stroke-width="3" fill="none" opacity="0.35" stroke-linecap="round"/>
+      <path d="M12,80 Q26,73 40,80 T68,80" stroke="#7ec3e6" stroke-width="3" fill="none" opacity="0.3" stroke-linecap="round"/>
+    </svg>`;
+  }
+  const fairId=`fair-${uid}`;
+  // Soft scrim so the fairway stripe stays readable over whatever busy
+  // patch of the master course image sits behind it — no opaque rough
+  // fill anymore, that's the background image's job now.
+  const scrim=`<rect x="2" y="2" width="96" height="96" rx="16" fill="#173425" opacity="0.14"/>`;
+  const stripe=(d)=>`<path d="${d}" stroke="url(#${fairId})" stroke-width="34" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`;
+  let inner='';
+  if(tile.kind==='hole'){
+    // canonical stub points North (base dir 0); whole tile rotates via the wrapping .tile-spin div
+    inner = stripe('M50,0 L50,50') +
+      `<ellipse cx="50" cy="52" rx="11" ry="7" fill="#12291a"/>
+       <line x1="58" y1="46" x2="58" y2="20" stroke="#e9e2cf" stroke-width="2.4"/>
+       <path d="M58,20 L76,26 L58,32 Z" fill="#d1523a"/>`;
+  } else if(tile.kind==='straight'){
+    inner = stripe('M50,0 L50,100');
+  } else {
+    inner = stripe('M50,0 L50,50 L100,50'); // canonical N-E corner
+  }
+  return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="${fairId}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="100" y2="100">
+        <stop offset="0" stop-color="#8fd07a"/>
+        <stop offset="1" stop-color="#6cb654"/>
+      </linearGradient>
+    </defs>
+    ${scrim}${inner}
+  </svg>`;
+}
+
+// One continuous illustrated course image spanning the whole board. Each
+// open tile shows a slice of it (via CSS background-position) and rotates
+// that slice along with its fairway art — so the picture only reads as a
+// single coherent scene once every tile (path AND decoy) is back at its
+// original, unrotated orientation. Water tiles don't take part; they stay
+// on top as their own fixed hazard art.
+function buildMasterBackground(rows, cols){
+  const W=cols*100, H=rows*100;
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}">
+    <defs>
+      <linearGradient id="base" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="${W}" y2="${H}">
+        <stop offset="0" stop-color="#4d9a5c"/>
+        <stop offset="1" stop-color="#2f6b3f"/>
+      </linearGradient>
+      <pattern id="mow" patternUnits="userSpaceOnUse" width="42" height="42" patternTransform="rotate(29)">
+        <rect width="42" height="42" fill="#ffffff" opacity="0"/>
+        <rect width="21" height="42" fill="#ffffff" opacity="0.055"/>
+      </pattern>
+      <radialGradient id="vign" gradientUnits="userSpaceOnUse" cx="${W*0.5}" cy="${H*0.5}" r="${Math.max(W,H)*0.75}">
+        <stop offset="0.55" stop-color="#000000" stop-opacity="0"/>
+        <stop offset="1" stop-color="#000000" stop-opacity="0.22"/>
+      </radialGradient>
+    </defs>
+    <rect width="${W}" height="${H}" fill="url(#base)"/>
+    <rect width="${W}" height="${H}" fill="url(#mow)"/>
+    <ellipse cx="${W*0.86}" cy="${H*0.14}" rx="${Math.min(W,H)*0.11}" ry="${Math.min(W,H)*0.11}" fill="#ffe9a8" opacity="0.5"/>
+    <ellipse cx="${W*0.18}" cy="${H*0.1}" rx="${W*0.13}" ry="${H*0.045}" fill="#ffffff" opacity="0.16"/>
+    <ellipse cx="${W*0.3}" cy="${H*0.15}" rx="${W*0.09}" ry="${H*0.035}" fill="#ffffff" opacity="0.13"/>
+    <g opacity="0.5">
+      <circle cx="${W*0.12}" cy="${H*0.82}" r="${Math.min(W,H)*0.1}" fill="#245430"/>
+      <circle cx="${W*0.2}" cy="${H*0.9}" r="${Math.min(W,H)*0.08}" fill="#245430"/>
+      <circle cx="${W*0.06}" cy="${H*0.92}" r="${Math.min(W,H)*0.07}" fill="#245430"/>
+    </g>
+    <ellipse cx="${W*0.62}" cy="${H*0.55}" rx="${Math.min(W,H)*0.16}" ry="${Math.min(W,H)*0.09}" fill="#d9b46a" opacity="0.4"/>
+    <ellipse cx="${W*0.42}" cy="${H*0.78}" rx="${Math.min(W,H)*0.12}" ry="${Math.min(W,H)*0.07}" fill="#d9b46a" opacity="0.32"/>
+    <rect width="${W}" height="${H}" fill="url(#vign)"/>
+  </svg>`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
+function cellCenter(r,c){
+  return { x: PAD + c*(TILE+GAP) + TILE/2, y: PAD + r*(TILE+GAP) + TILE/2 };
+}
+
+function teePos(){
+  const start=cellCenter(startCell[0], startCell[1]);
+  const away=opposite(entryDir);
+  const dist=TILE*0.62;
+  return { x: start.x + VEC[away][1]*dist, y: start.y + VEC[away][0]*dist };
+}
+
+function syncTileSize(){
+  const maxBoardWidth=Math.min(window.innerWidth*0.86, 360);
+  const maxBoardHeight=Math.min(window.innerHeight*0.5, 480);
+  const tileFromWidth=(maxBoardWidth - PAD*2 - GAP*(COLS-1)) / COLS;
+  const tileFromHeight=(maxBoardHeight - PAD*2 - GAP*(ROWS-1)) / ROWS;
+  TILE=Math.max(34, Math.min(tileFromWidth, tileFromHeight, 78));
+  document.documentElement.style.setProperty('--tile-size', TILE+'px');
+}
+
+function bgPercent(i, count){ return count>1 ? (i/(count-1))*100 : 0; }
+
+function renderGrid(){
+  gridEl.innerHTML='';
+  gridEl.style.gridTemplateColumns=`repeat(${COLS}, var(--tile-size))`;
+  gridEl.style.gridTemplateRows=`repeat(${ROWS}, var(--tile-size))`;
+  tileDivs=[]; spinEls=[];
+  for(let r=0;r<ROWS;r++){
+    const rowDivs=[], rowSpins=[];
+    for(let c=0;c<COLS;c++){
+      const tile=grid[r][c];
+      const div=document.createElement('div');
+      if(tile.type==='water'){
+        div.className='tile fixed';
+        div.innerHTML=tileArt(tile, `${r}_${c}`);
+        rowSpins.push(null);
+      } else {
+        div.className='tile';
+        const spin=document.createElement('div');
+        spin.className='tile-spin';
+        spin.style.backgroundImage=`url("${masterBgUrl}")`;
+        spin.style.backgroundSize=`${COLS*100}% ${ROWS*100}%`;
+        spin.style.backgroundPosition=`${bgPercent(c,COLS)}% ${bgPercent(r,ROWS)}%`;
+        spin.style.transform=`rotate(${tile.spinDeg}deg)`;
+        spin.innerHTML=tileArt(tile, `${r}_${c}`);
+        div.appendChild(spin);
+        rowSpins.push(spin);
+      }
+      div.addEventListener('click', ()=>onTileClick(r,c));
+      gridEl.appendChild(div);
+      rowDivs.push(div);
+    }
+    tileDivs.push(rowDivs);
+    spinEls.push(rowSpins);
+  }
+  syncTileSize();
+  ballCell=null;
+  syncBallPosition();
+  ballEl.classList.remove('sink');
+}
+
+function syncBallPosition(){
+  const p = ballCell ? cellCenter(ballCell[0], ballCell[1]) : teePos();
+  ballEl.style.left=p.x+'px';
+  ballEl.style.top=p.y+'px';
+}
+
+window.addEventListener('resize', ()=>{ syncTileSize(); syncBallPosition(); });
+
+function onTileClick(r,c){
+  if(busy) return;
+  const tile=grid[r][c];
+  if(tile.type==='water'){
+    shakeTile(r,c);
+    return;
+  }
+  tile.rotation=(tile.rotation+1)%4;
+  tile.spinDeg+=90;
+  spinEls[r][c].style.transform=`rotate(${tile.spinDeg}deg)`;
+  tapsThisHole++;
+  tapCountEl.textContent=tapsThisHole;
+  setMessage('');
+
+  const result=simulate();
+  if(result.success){
+    busy=true;
+    animateWin(result);
+  }
+}
+
+function shakeTile(r,c){
+  const div=tileDivs[r][c];
+  div.classList.remove('shake');
+  void div.offsetWidth;
+  div.classList.add('shake');
+  setMessage("That's fixed terrain — it won't rotate.", 'fail');
+}
+
+function setMessage(text, cls){
+  messageEl.textContent=text;
+  messageEl.className='message'+(cls?' '+cls:'');
+}
+
+// ---------- simulation ----------
+
+function simulate(){
+  const cells=[];
+  let dir=entryDir;
+  const [sr,sc]=startCell;
+  const entryTile=grid[sr][sc];
+  const entrySide0=opposite(dir);
+  const entryConns=connections(entryTile);
+  if(!entryConns.includes(entrySide0)) return {success:false, cells};
+  cells.push([sr,sc]);
+  if(entryTile.kind==='hole') return {success:true, cells};
+  let exitDir=entryConns.find(d=>d!==entrySide0);
+  if(exitDir===undefined) return {success:false, cells};
+  dir=exitDir;
+  let cur=[sr,sc], steps=0;
+  while(steps<200){
+    steps++;
+    const nr=cur[0]+VEC[dir][0], nc=cur[1]+VEC[dir][1];
+    if(nr<0||nr>=ROWS||nc<0||nc>=COLS) return {success:false, cells};
+    const nextTile=grid[nr][nc];
+    const entrySide=opposite(dir);
+    const nextConns=connections(nextTile);
+    if(!nextConns.includes(entrySide)) return {success:false, cells};
+    cur=[nr,nc]; cells.push(cur);
+    if(nextTile.kind==='hole') return {success:true, cells};
+    const exitDir2=nextConns.find(d=>d!==entrySide);
+    if(exitDir2===undefined) return {success:false, cells};
+    dir=exitDir2;
+  }
+  return {success:false, cells};
+}
+
+function delay(ms){ return new Promise(res=>setTimeout(res,ms)); }
+
+function starsFor(taps, par, slack){
+  if(taps<=par) return 3;
+  const extra=Math.max(2, Math.ceil(par*slack));
+  if(taps<=par+extra) return 2;
+  return 1;
+}
+
+async function animateWin(result){
+  const stepDelay = result.cells.length > 10 ? 130 : 210;
+  for(let i=0;i<result.cells.length;i++){
+    const [r,c]=result.cells[i];
+    ballCell=[r,c];
+    const p=cellCenter(r,c);
+    ballEl.style.left=p.x+'px';
+    ballEl.style.top=p.y+'px';
+    await delay(stepDelay);
+  }
+  setMessage('In the cup! 🏆', 'win');
+  ballEl.classList.add('sink');
+  await delay(250);
+
+  const stars=starsFor(tapsThisHole, PAR, currentSlack);
+  holeStars[levelIndex]=stars;
+  totalStars+=stars;
+  updateScorecard();
+  showOverlay(stars);
+}
+
+// ---------- scorecard / flow ----------
+
+function updateScorecard(){
+  holeNumEl.textContent=`${levelIndex+1} / ${LEVELS.length}`;
+  parCountEl.textContent=PAR;
+  tapCountEl.textContent=tapsThisHole;
+  holeDotsEl.innerHTML='';
+  for(let i=0;i<LEVELS.length;i++){
+    const dot=document.createElement('div');
+    let cls='hole-dot';
+    if(holeStars[i]) cls+=' s'+holeStars[i];
+    if(i===levelIndex) cls+=' current';
+    dot.className=cls;
+    holeDotsEl.appendChild(dot);
+  }
+}
+
+function updateStreakBadge(){
+  const state=loadStreakState();
+  if(state.streak>0){
+    streakBadge.style.display='inline-flex';
+    streakText.textContent = `${state.streak} day streak` + (state.best>state.streak ? ` · best ${state.best}` : '');
+  } else {
+    streakBadge.style.display='none';
+  }
+}
+
+function updateEyebrow(){
+  eyebrowEl.textContent = dailyMode ? `Daily Challenge · ${todayStr()}` : 'Practice Round';
+}
+
+function showOverlay(stars){
+  starRowEl.innerHTML = '★'.repeat(stars) + `<span class="empty">${'★'.repeat(3-stars)}</span>`;
+  const isLast = levelIndex===LEVELS.length-1;
+  overlayTitle.textContent = stars===3 ? 'Perfect line!' : (isLast ? 'Round complete!' : 'Nice putt!');
+  let text = isLast
+    ? `You finished all ${LEVELS.length} holes with ${totalStars} / ${LEVELS.length*3} stars total.`
+    : `Par was ${PAR} — you solved it in ${tapsThisHole} spin${tapsThisHole===1?'':'s'}.`;
+  if(isLast && dailyMode){
+    const {streak}=recordDailyCompletion();
+    updateStreakBadge();
+    text += ` Streak: ${streak} day${streak===1?'':'s'} 🔥`;
+    dailyMode=false; // today's challenge is banked — further rounds this session are practice
+  }
+  overlayText.textContent = text;
+  overlayBtn.textContent = isLast ? 'Play Again' : 'Next Hole';
+  overlay.classList.add('show');
+}
+
+overlayBtn.addEventListener('click', ()=>{
+  overlay.classList.remove('show');
+  if(levelIndex < LEVELS.length-1){
+    levelIndex++;
+  } else {
+    levelIndex=0;
+    totalStars=0;
+    holeStars=[];
+    if(!dailyMode) rand=Math.random; // practice rounds don't reuse the daily seed
+  }
+  updateEyebrow();
+  startHole();
+});
+
+resetBtn.addEventListener('click', ()=>{
+  if(busy) return;
+  grid = initialSnapshot.map(row=>row.map(t=>({...t})));
+  tapsThisHole=0;
+  renderGrid();
+  updateScorecard();
+  setMessage('Hole reset — tap tiles to rotate them clockwise.');
+});
+
+function startHole(){
+  tapsThisHole=0;
+  busy=false;
+  resetBtn.disabled=false;
+  buildLevel(levelIndex);
+  initialSnapshot = grid.map(row=>row.map(t=>({...t})));
+  renderGrid();
+  updateScorecard();
+  setMessage('Tap tiles to rotate them clockwise.');
+}
+
+let alreadyDoneToday=false;
+(function initMode(){
+  const state=loadStreakState();
+  const today=todayStr();
+  if(state.lastDone===today){
+    dailyMode=false;
+    rand=Math.random;
+    alreadyDoneToday=true;
+  } else {
+    dailyMode=true;
+    rand=mulberry32(seedFromString('picture-golf-'+today));
+  }
+  updateStreakBadge();
+  updateEyebrow();
+})();
+
+startHole();
+if(alreadyDoneToday) setMessage("Today's challenge is done — enjoy a bonus practice round.");
+</script>
+</body>
+</html>
