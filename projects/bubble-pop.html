@@ -187,17 +187,88 @@
     z-index: 10;
     pointer-events: none;
   }
+
+  #frenzy-flash {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: radial-gradient(circle at 50% 40%, rgba(255, 212, 59, 0.4), rgba(255, 212, 59, 0) 70%);
+    opacity: 0;
+    transition: opacity 0.35s ease;
+  }
+
+  #frenzy-flash.active {
+    opacity: 1;
+    animation: frenzyPulse 0.65s ease-in-out infinite alternate;
+  }
+
+  @keyframes frenzyPulse {
+    from { opacity: 0.55; }
+    to { opacity: 1; }
+  }
+
+  #frenzy-banner {
+    position: absolute;
+    top: 38%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    text-align: center;
+    z-index: 11;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.25s ease, transform 0.25s cubic-bezier(.34,1.56,.64,1);
+  }
+
+  #frenzy-banner.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  #frenzy-banner .title {
+    display: block;
+    font-family: 'Baloo 2', 'Nunito', system-ui, sans-serif;
+    font-size: 40px;
+    font-weight: 800;
+    color: #ffd43b;
+    text-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+    letter-spacing: 0.02em;
+  }
+
+  #frenzy-banner .subtitle {
+    display: block;
+    margin-top: 2px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  }
+
+  @keyframes bubbleInflate {
+    0% { transform: translate(-50%, -50%) scale(0.1); opacity: 0; }
+    55% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  }
+
+  .bubble.spawn-in {
+    animation: bubbleInflate 0.32s cubic-bezier(.34,1.56,.64,1);
+  }
 </style>
 </head>
 <body>
 <div id="game">
   <div id="bg-tint"></div>
+  <div id="frenzy-flash"></div>
   <div id="top-bar">
     <div id="score">0</div>
     <div id="target">
       <span id="target-swatch"></span>
       <span id="target-label">2x this color!</span>
     </div>
+  </div>
+  <div id="frenzy-banner">
+    <span class="title">FRENZY!</span>
+    <span class="subtitle">Pop as fast as you can!</span>
   </div>
   <div id="hint">tap to start</div>
 </div>
@@ -209,6 +280,8 @@
   const hintEl = document.getElementById('hint');
   const tintEl = document.getElementById('bg-tint');
   const targetSwatchEl = document.getElementById('target-swatch');
+  const frenzyFlashEl = document.getElementById('frenzy-flash');
+  const frenzyBannerEl = document.getElementById('frenzy-banner');
 
   let width = gameEl.clientWidth;
   let height = gameEl.clientHeight;
@@ -218,7 +291,10 @@
   let spawnTimer = 0;
   let spawnInterval = 0.9;
 
-  const MAX_BUBBLES = 14;
+  const NORMAL_MAX_BUBBLES = 14;
+  const FRENZY_MAX_BUBBLES = 40;
+  let maxBubbles = NORMAL_MAX_BUBBLES;
+
   const MIN_SIZE = 34;
   const MAX_SIZE = 92;
   const MIN_SPEED = 40; // points/sec
@@ -230,6 +306,16 @@
   let targetHue = PALETTE[Math.floor(Math.random() * PALETTE.length)];
   let targetTimer = 0;
   let targetInterval = 7;
+
+  // ---------- Frenzy mode ----------
+  const FRENZY_DURATION = 10;      // seconds
+  const FRENZY_COOLDOWN = 30;      // seconds of normal play between frenzies
+  const FRENZY_SPAWN_INTERVAL = 0.11;
+  let elapsedTime = 0;
+  let inFrenzy = false;
+  let frenzyTimeLeft = 0;
+  let frenzySpawnTimer = 0;
+  let nextFrenzyAt = FRENZY_COOLDOWN;
 
   const bubbles = new Map(); // id -> { el, ...state }
   let nextId = 1;
@@ -318,8 +404,38 @@
     return 'right';
   }
 
+  function createBubble({ x, y, targetBaseX, size, speed, hue, spawnIn }) {
+    const el = document.createElement('div');
+    el.className = 'bubble' + (spawnIn ? ' spawn-in' : '');
+    el.style.width = size + 'px';
+    el.style.height = size + 'px';
+    el.style.background =
+      `radial-gradient(circle at 35% 30%, hsla(${hue},70%,80%,0.75), hsla(${hue},60%,55%,0.9))`;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    gameEl.appendChild(el);
+
+    const id = nextId++;
+    const state = {
+      el, id, baseX: x, targetBaseX: (targetBaseX !== undefined ? targetBaseX : x),
+      x, y, size, speed, hue,
+      phase: Math.random() * Math.PI * 2,
+      freq: 0.6 + Math.random() * 0.8,
+      amp: 6 + Math.random() * 16,
+      popping: false
+    };
+
+    el.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      pop(state);
+    }, { passive: false });
+
+    bubbles.set(id, state);
+    return state;
+  }
+
   function spawnBubble() {
-    if (bubbles.size >= MAX_BUBBLES) return;
+    if (bubbles.size >= maxBubbles) return;
 
     const size = MIN_SIZE + Math.random() * (MAX_SIZE - MIN_SIZE);
     const sizeFactor = 1 - (size - MIN_SIZE) / (MAX_SIZE - MIN_SIZE); // 0 big, 1 small
@@ -345,32 +461,49 @@
     }
 
     const hue = PALETTE[Math.floor(Math.random() * PALETTE.length)];
-    const id = nextId++;
+    createBubble({ x: baseX, y, targetBaseX, size, speed, hue, spawnIn: false });
+  }
 
-    const el = document.createElement('div');
-    el.className = 'bubble';
-    el.style.width = size + 'px';
-    el.style.height = size + 'px';
-    el.style.background =
-      `radial-gradient(circle at 35% 30%, hsla(${hue},70%,80%,0.75), hsla(${hue},60%,55%,0.9))`;
-    el.style.left = baseX + 'px';
-    el.style.top = y + 'px';
-    gameEl.appendChild(el);
+  // During frenzy, bubbles appear already in place across the whole screen
+  // with an "inflating" pop-in animation, and drift only very slowly so the
+  // player can focus on tapping fast rather than chasing them down.
+  function spawnFrenzyBubble() {
+    if (bubbles.size >= maxBubbles) return;
 
-    const state = {
-      el, id, baseX, targetBaseX, x: baseX, y, size, speed, hue,
-      phase: Math.random() * Math.PI * 2,
-      freq: 0.6 + Math.random() * 0.8,
-      amp: 6 + Math.random() * 16,
-      popping: false
-    };
+    const size = MIN_SIZE + Math.random() * (MAX_SIZE - MIN_SIZE);
+    const sizeFactor = 1 - (size - MIN_SIZE) / (MAX_SIZE - MIN_SIZE);
+    const speed = 6 + sizeFactor * 10; // slow drift, mostly just sits there
+    const margin = size / 2 + 8;
+    const clampedWidth = Math.max(width, margin * 2 + 1);
+    const clampedHeight = Math.max(height, margin * 2 + 1);
 
-    el.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      pop(state);
-    }, { passive: false });
+    const x = margin + Math.random() * (clampedWidth - margin * 2);
+    const y = margin + Math.random() * (clampedHeight - margin * 2);
+    const hue = PALETTE[Math.floor(Math.random() * PALETTE.length)];
 
-    bubbles.set(id, state);
+    createBubble({ x, y, size, speed, hue, spawnIn: true });
+  }
+
+  function startFrenzy() {
+    inFrenzy = true;
+    frenzyTimeLeft = FRENZY_DURATION;
+    frenzySpawnTimer = 0;
+    maxBubbles = FRENZY_MAX_BUBBLES;
+
+    frenzyFlashEl.classList.add('active');
+    frenzyBannerEl.classList.add('show');
+    setTimeout(() => frenzyBannerEl.classList.remove('show'), 1400);
+
+    // Kick things off with an immediate burst rather than waiting for the
+    // spawn timer to slowly fill the screen.
+    for (let i = 0; i < 12; i++) spawnFrenzyBubble();
+  }
+
+  function endFrenzy() {
+    inFrenzy = false;
+    maxBubbles = NORMAL_MAX_BUBBLES;
+    frenzyFlashEl.classList.remove('active');
+    nextFrenzyAt = elapsedTime + FRENZY_COOLDOWN;
   }
 
   function pop(state) {
@@ -436,11 +569,29 @@
     const dt = Math.min(0.05, (timestamp - lastTime) / 1000);
     lastTime = timestamp;
 
-    spawnTimer += dt;
-    if (spawnTimer >= spawnInterval) {
-      spawnBubble();
-      spawnTimer = 0;
-      spawnInterval = 0.5 + Math.random() * 0.6;
+    elapsedTime += dt;
+
+    if (!inFrenzy && elapsedTime >= nextFrenzyAt) {
+      startFrenzy();
+    }
+
+    if (inFrenzy) {
+      frenzySpawnTimer += dt;
+      if (frenzySpawnTimer >= FRENZY_SPAWN_INTERVAL) {
+        spawnFrenzyBubble();
+        frenzySpawnTimer = 0;
+      }
+      frenzyTimeLeft -= dt;
+      if (frenzyTimeLeft <= 0) {
+        endFrenzy();
+      }
+    } else {
+      spawnTimer += dt;
+      if (spawnTimer >= spawnInterval) {
+        spawnBubble();
+        spawnTimer = 0;
+        spawnInterval = 0.5 + Math.random() * 0.6;
+      }
     }
 
     targetTimer += dt;
@@ -483,6 +634,11 @@
     hintEl.style.display = 'none';
     lastTime = null;
     spawnTimer = spawnInterval; // spawn one immediately
+    elapsedTime = 0;
+    inFrenzy = false;
+    frenzyTimeLeft = 0;
+    nextFrenzyAt = FRENZY_COOLDOWN;
+    maxBubbles = NORMAL_MAX_BUBBLES;
     requestAnimationFrame(tick);
   }
 
